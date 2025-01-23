@@ -2,6 +2,11 @@ import React, { useEffect, useImperativeHandle, forwardRef, useState } from "rea
 import { Canvas, Image as FabricImage } from "fabric";
 import * as pdfjsLib from "pdfjs-dist";
 
+// Set up the worker for pdfjs-dist
+import { GlobalWorkerOptions } from 'pdfjs-dist';
+import workerSrc from 'pdfjs-dist/build/pdf.worker.entry';
+GlobalWorkerOptions.workerSrc = workerSrc;
+
 const FabricCanvas = forwardRef((props, ref) => {
   const canvasRef = React.useRef(null);
   const [fabricCanvas, setFabricCanvas] = useState(null);
@@ -24,10 +29,15 @@ const FabricCanvas = forwardRef((props, ref) => {
             // Handle image files
             const reader = new FileReader();
             reader.onload = (e) => {
+              console.log("Image loaded:", e.target.result);  // Log the image URL
               FabricImage.fromURL(e.target.result, (img) => {
-                img.scaleToWidth(canvas.width * 0.9);
-                canvas.add(img);
-                canvas.renderAll();
+                console.log("Fabric image:", img);  // Log the image object
+
+                // Scale the image to fit the canvas (90% of canvas size)
+                img.scaleToWidth(fabricCanvas.width * 0.9);
+                img.scaleToHeight(fabricCanvas.height * 0.9);
+                fabricCanvas.add(img);
+                fabricCanvas.renderAll();  // Ensure the canvas is re-rendered
               });
             };
             reader.readAsDataURL(file);
@@ -46,10 +56,15 @@ const FabricCanvas = forwardRef((props, ref) => {
 
               await firstPage.render({ canvasContext: context, viewport }).promise;
 
+              // Convert the rendered PDF page to an image
               FabricImage.fromURL(canvasEl.toDataURL(), (img) => {
-                img.scaleToWidth(canvas.width * 0.9);
-                canvas.add(img);
-                canvas.renderAll();
+                console.log("Fabric image from PDF:", img);  // Log the image object
+
+                // Scale the image to fit the canvas (90% of canvas size)
+                img.scaleToWidth(fabricCanvas.width * 0.9);
+                img.scaleToHeight(fabricCanvas.height * 0.9);
+                fabricCanvas.add(img);
+                fabricCanvas.renderAll();  // Ensure the canvas is re-rendered
               });
             };
             reader.readAsArrayBuffer(file);

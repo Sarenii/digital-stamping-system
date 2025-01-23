@@ -5,9 +5,11 @@
   "dependencies": {
     "cra-template": "1.2.0",
     "fabric": "^6.5.4",
-    "pdfjs-dist": "^4.10.38",
+    "konva": "^9.3.18",
+    "pdfjs-dist": "^2.16.105",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-konva": "^19.0.2",
     "react-scripts": "5.0.1",
     "web-vitals": "^4.2.4"
   },

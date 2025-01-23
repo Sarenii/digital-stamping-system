@@ -1,7 +1,9 @@
 import React, { useRef } from "react";
 import NavBar from "./components/NavBar";
 import SideBar from "./components/SideBar";
-import FabricCanvas from "./components/FabricCanvas";
+// import FabricCanvas from "./components/FabricCanvas";
+import KonvaCanvas from "./components/KonvaCanvas";
+
 
 const App = () => {
   const canvasRef = useRef(null);
@@ -23,7 +25,7 @@ const App = () => {
       <NavBar />
       <div className="flex flex-1">
         <SideBar addStamp={addStamp} uploadDocument={uploadDocument} />
-        <FabricCanvas ref={canvasRef} />
+        <KonvaCanvas ref={canvasRef} />
       </div>
     </div>
   );
