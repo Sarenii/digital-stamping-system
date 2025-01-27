@@ -1,39 +1,37 @@
-import React, { useRef, useState } from "react";
-import NavBar from "./components/NavBar";
-import SideBar from "./components/SideBar";
-import KonvaCanvas from "./components/KonvaCanvas";
+// src/App.js
+import React, { useState } from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "./Context/AuthContext"; // Import AuthProvider
+import LandingPage from "./components/LandingPage";
+import Login from "./components/Auths/Login";
+import CanvasWithSidebar from "./components/CanvasWithSidebar"; // Corrected import
+import StampCreator from "./components/StampCreator"; // This is where the StampCreator will be displayed
+import Documents from "./components/Documents"; // Import the Documents component
 
 const App = () => {
-  const canvasRef = useRef(null);
-  const [isButtonActive, setIsButtonActive] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  const addStamp = () => {
-    if (canvasRef.current) {
-      canvasRef.current.handleAddStamp(); // Activate the modal and button
-    }
+  const handleLogin = (isAuthenticated) => {
+    setIsLoggedIn(isAuthenticated);
   };
 
-  const uploadDocument = (file) => {
-    if (canvasRef.current) {
-      canvasRef.current.uploadDocument(file);
-    }
+  // Create the createStamp function here
+  const createStamp = (stampData) => {
+    console.log("Stamp created: ", stampData);  // You can replace this with your actual stamp handling logic
   };
 
   return (
-    <div className="flex flex-col h-screen">
-      <NavBar />
-      <div className="flex flex-1">
-        <SideBar
-          addStamp={addStamp}
-          uploadDocument={uploadDocument}
-          isButtonActive={isButtonActive} // Pass the active state to the sidebar
-        />
-        <KonvaCanvas
-          ref={canvasRef}
-          setIsButtonActive={setIsButtonActive} // Pass state setter to KonvaCanvas
-        />
-      </div>
-    </div>
+    <AuthProvider>  {/* Wrap the app with AuthProvider */}
+      <Router>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/login" element={<Login onLogin={handleLogin} />} />
+          <Route path="/canvas" element={<CanvasWithSidebar />} />
+          <Route path="/creator" element={<StampCreator createStamp={createStamp} />} />
+          <Route path="/documents" element={<Documents />} /> {/* Add the Documents route */}
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 };
 

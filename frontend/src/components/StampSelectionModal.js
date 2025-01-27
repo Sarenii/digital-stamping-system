@@ -1,30 +1,50 @@
-import React from "react";
+import React, { useState } from "react";
 
-const StampSelectionModal = ({ onSelect, onClose }) => {
+const StampSelectionModal = ({ showModal, stamps, onSelect, onCreate, onClose }) => {
+  const [showGeneralStamps, setShowGeneralStamps] = useState(false); // Add state here
+
   return (
-    <div className="fixed inset-0 bg-gray-800 bg-opacity-70 flex justify-center items-center">
-      <div className="bg-gray-900 p-6 rounded-xl shadow-lg w-1/4 relative">
+    <div
+      className={`fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center ${showModal ? "block" : "hidden"}`}
+    >
+      <div className="bg-secondary p-6 rounded-lg w-1/2">
+        <h3 className="text-xl mb-4">Add Stamp</h3>
+        
+        {stamps.length > 0 ? (
+          <div>
+            <h4 className="text-lg mb-2">Your Custom Stamps:</h4>
+            <ul>
+              {stamps.map((stamp) => (
+                <li key={stamp.id}>
+                  <button
+                    onClick={() => onSelect(stamp.text)}
+                    className="px-4 py-2 bg-accent text-white hover:bg-accent-dark rounded w-full text-left"
+                  >
+                    {stamp.text}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-4">
+              <button
+                onClick={onCreate}
+                className="px-4 py-2 bg-green-500 text-white rounded w-full"
+              >
+                Create Custom Stamp
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="text-center text-gray-500">
+            <p>You haven't created any custom stamps yet.</p>
+          </div>
+        )}
         <button
           onClick={onClose}
-          className="absolute top-2 right-2 text-white text-2xl"
+          className="mt-4 px-4 py-2 bg-red-500 text-white rounded w-full"
         >
-          &times;
+          Close
         </button>
-        <h3 className="text-lg font-semibold text-white mb-4">Select a Stamp</h3>
-        <div className="space-y-4">
-          <button
-            onClick={() => onSelect("APPROVED")}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl transition duration-200"
-          >
-            APPROVED
-          </button>
-          <button
-            onClick={() => onSelect("CONFIDENTIAL")}
-            className="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded-xl transition duration-200"
-          >
-            CONFIDENTIAL
-          </button>
-        </div>
       </div>
     </div>
   );

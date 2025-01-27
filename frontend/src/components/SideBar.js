@@ -10,7 +10,7 @@ const SideBar = ({ addStamp, uploadDocument }) => {
       {/* Add Stamp Button */}
       <button
         className="w-full bg-primary text-white py-2 rounded mb-4 hover:bg-accent hover:text-primary transition"
-        onClick={() => addStamp("openModal")}
+        onClick={addStamp} // Directly call addStamp here
       >
         Add Stamp
       </button>

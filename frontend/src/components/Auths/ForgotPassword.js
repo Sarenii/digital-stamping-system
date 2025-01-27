@@ -70,105 +70,84 @@ const ForgotPassword = () => {
   };
 
   return (
-    <div className="max-w-lg mx-auto p-6 space-y-6 bg-white shadow-md rounded-lg">
-      <h1 className="text-2xl font-semibold text-center">Forgot Password</h1>
+    <div className="forgot-password">
+      <h1>Forgot Password</h1>
 
       {step === 1 && (
-        <form onSubmit={handleEmailSubmit} className="space-y-4">
-          <label className="block text-sm font-medium">Email:</label>
+        <form onSubmit={handleEmailSubmit} className="forgot-password-form">
+          <label>Email:</label>
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-2 mt-4 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 disabled:bg-gray-400"
-          >
+          {error && <p className="error-message">{error}</p>}
+          <button type="submit" disabled={isLoading}>
             {isLoading ? "Sending..." : "Send OTP"}
           </button>
         </form>
       )}
 
       {step === 2 && (
-        <form onSubmit={handleOtpSubmit} className="space-y-4">
-          <label className="block text-sm font-medium">Enter OTP:</label>
+        <form onSubmit={handleOtpSubmit} className="forgot-password-form">
+          <label>Enter OTP:</label>
           <input
             type="text"
             value={otp}
             onChange={(e) => setOtp(e.target.value)}
             required
-            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-2 mt-4 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 disabled:bg-gray-400"
-          >
+          {error && <p className="error-message">{error}</p>}
+          <button type="submit" disabled={isLoading}>
             {isLoading ? "Verifying..." : "Verify OTP"}
           </button>
         </form>
       )}
 
       {step === 3 && (
-        <form onSubmit={handlePasswordReset} className="space-y-4">
-          <label className="block text-sm font-medium">New Password:</label>
-          <div className="relative">
+        <form onSubmit={handlePasswordReset} className="forgot-password-form">
+          <label>New Password:</label>
+          <div className="password-container">
             <input
               type={showNewPassword ? "text" : "password"}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <span
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer"
+              className="toggle-password-icon"
               onClick={() => setShowNewPassword((prev) => !prev)}
             >
               {showNewPassword ? <FaEyeSlash /> : <FaEye />}
             </span>
           </div>
-
-          <label className="block text-sm font-medium">Confirm Password:</label>
-          <div className="relative">
+          <label>Confirm Password:</label>
+          <div className="password-container">
             <input
               type={showConfirmPassword ? "text" : "password"}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
             <span
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer"
+              className="toggle-password-icon"
               onClick={() => setShowConfirmPassword((prev) => !prev)}
             >
               {showConfirmPassword ? <FaEyeSlash /> : <FaEye />}
             </span>
           </div>
-
-          {error && <p className="text-red-500 text-sm">{error}</p>}
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full py-2 mt-4 bg-blue-500 text-white font-semibold rounded-md hover:bg-blue-600 disabled:bg-gray-400"
-          >
+          {error && <p className="error-message">{error}</p>}
+          <button type="submit" disabled={isLoading}>
             {isLoading ? "Resetting..." : "Reset Password"}
           </button>
         </form>
       )}
 
       {step === 4 && (
-        <div className="text-center">
-          <h2 className="text-xl font-semibold text-green-600">{successMessage}</h2>
-          <a
-            href="/login"
-            className="mt-4 inline-block px-6 py-2 bg-green-500 text-white rounded-md hover:bg-green-600"
-          >
+        <div className="success-message">
+          <h2>{successMessage}</h2>
+          <a href="/login" className="go-login">
             Go to Login
           </a>
         </div>
