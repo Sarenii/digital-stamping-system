@@ -47,15 +47,20 @@ export const AuthProvider = ({ children }) => {
   // Login function
   const login = async (email, password) => {
     try {
-      const { user: userProfile } = await loginUser(email, password);
+      const { user: userProfile, accessToken } = await loginUser(email, password); // Ensure the response has accessToken
       console.log("User logged in:", userProfile); // Debugging log
-      setUser(userProfile);
+  
+      // Save token to localStorage
+      localStorage.setItem("accessToken", accessToken);
+  
+      // Save user details and token in state
+      setUser({ ...userProfile, accessToken });
     } catch (error) {
       console.error("Login error:", error);
       throw error;
     }
   };
-
+  
   // Logout function
   const logout = () => {
     setUser(null);

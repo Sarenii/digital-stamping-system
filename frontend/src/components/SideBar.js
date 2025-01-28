@@ -1,6 +1,6 @@
 import React, { useRef } from "react";
 
-const SideBar = ({ addStamp, uploadDocument }) => {
+const SideBar = ({ uploadDocument, addStamp }) => {
   const fileInputRef = useRef(null);
 
   return (
@@ -10,7 +10,7 @@ const SideBar = ({ addStamp, uploadDocument }) => {
       {/* Add Stamp Button */}
       <button
         className="w-full bg-primary text-white py-2 rounded mb-4 hover:bg-accent hover:text-primary transition"
-        onClick={addStamp} // Directly call addStamp here
+        onClick={addStamp}
       >
         Add Stamp
       </button>
@@ -36,13 +36,7 @@ const SideBar = ({ addStamp, uploadDocument }) => {
         }}
       />
 
-      {/* Additional Tools Placeholder */}
-      <button
-        className="w-full bg-primary text-white py-2 rounded hover:bg-accent hover:text-primary transition"
-        onClick={() => alert("More tools coming soon!")}
-      >
-        Manage Stamps
-      </button>
+    
     </aside>
   );
 };

@@ -1,40 +1,47 @@
-// src/services/documents.js
-import axios from "axios";
+// services/documents.js
+import axios from 'axios';
 
-const API_URL = "http://127.0.0.1:8000/stamps";  // Replace with your actual API base URL
+// Define the base URL for your API (replace with your backend URL)
+const API_URL = 'https://localhost:8000/stamps';
 
-export const getDocuments = async () => {
+const getAuthHeaders = (token) => ({
+  headers: {
+    Authorization: `Bearer ${token}`,
+  },
+});
+
+// Fetch all documents for the logged-in user
+export const getDocuments = async (token) => {
   try {
-    const response = await axios.get(`${API_URL}/documents`);
-    return response.data;
+    const response = await axios.get(`${API_URL}/documents`, getAuthHeaders(token));
+    return response.data; // Return the list of documents
   } catch (error) {
-    throw new Error("Error fetching documents");
+    console.error("Error fetching documents:", error);
+    throw new Error("Failed to fetch documents.");
   }
 };
 
-export const createDocument = async (document) => {
+// Delete a document by its ID
+export const deleteDocument = async (id, token) => {
   try {
-    const formData = new FormData();
-    formData.append("file", document);  // Assuming you are uploading a file
-    const response = await axios.post(`${API_URL}/documents`, formData);
-    return response.data;
+    const response = await axios.delete(`${API_URL}/documents/${id}`, getAuthHeaders(token));
+    return response.data; // Return the response from the backend
   } catch (error) {
-    throw new Error("Error creating document");
+    console.error("Error deleting document:", error);
+    throw new Error("Failed to delete document.");
   }
 };
 
-export const deleteDocument = async (id) => {
-  try {
-    await axios.delete(`${API_URL}/documents/${id}`);
-  } catch (error) {
-    throw new Error("Error deleting document");
-  }
-};
+// Upload a new document
+export const uploadDocument = async (file, token) => {
+  const formData = new FormData();
+  formData.append('file', file);
 
-export const applyStampToDocument = async (docId, stampId) => {
   try {
-    await axios.post(`${API_URL}/documents/${docId}/apply_stamp`, { stampId });
+    const response = await axios.post(`${API_URL}/documents/upload`, formData, getAuthHeaders(token));
+    return response.data; // Return the uploaded document details
   } catch (error) {
-    throw new Error("Error applying stamp to document");
+    console.error("Error uploading document:", error);
+    throw new Error("Failed to upload document.");
   }
 };

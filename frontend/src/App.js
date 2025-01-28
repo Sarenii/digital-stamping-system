@@ -7,7 +7,7 @@ import Login from "./components/Auths/Login";
 import CanvasWithSidebar from "./components/CanvasWithSidebar"; // Corrected import
 import StampCreator from "./components/StampCreator"; // This is where the StampCreator will be displayed
 import Documents from "./components/Documents"; // Import the Documents component
-
+import ManageStamps from "./components/StampManager";
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -28,6 +28,7 @@ const App = () => {
           <Route path="/login" element={<Login onLogin={handleLogin} />} />
           <Route path="/canvas" element={<CanvasWithSidebar />} />
           <Route path="/creator" element={<StampCreator createStamp={createStamp} />} />
+          <Route path="/manage-stamps" element={<ManageStamps/>} />
           <Route path="/documents" element={<Documents />} /> {/* Add the Documents route */}
         </Routes>
       </Router>

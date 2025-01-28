@@ -1,64 +1,45 @@
 import React from "react";
-import { Text, Ellipse, Group } from "react-konva";
 
-const StampComponent = ({ x, y, text, zoom, shapeColor, textColor, dateColor }) => {
-  // Define the size of the oval
-  const ovalWidth = 200 * zoom;
-  const ovalHeight = 60 * zoom;
-
-  // Create the text node and measure the text size
-  const textWidth = text.length * 8 * zoom; // Approximate width of the text
-  const textHeight = 16 * zoom; // Approximate height of the text
-
+const StampComponent = ({ id, x, y, text, borderColor, onDelete }) => {
   return (
-    <Group x={x} y={y} draggable>
-      {/* Outer Oval Border */}
-      <Ellipse
-        width={ovalWidth} // Width of the outer oval
-        height={ovalHeight} // Height of the outer oval
-        fill="white" // White background
-        stroke={shapeColor || "blue"} // Border color
-        strokeWidth={4} // Border thickness
-        shadowBlur={5}
-      />
-      {/* Inner Oval Border */}
-      <Ellipse
-        width={ovalWidth - 20 * zoom} // Inner oval slightly smaller
-        height={ovalHeight - 10 * zoom}
-        fill="white"
-        stroke={shapeColor || "blue"}
+    <React.Fragment>
+      <text
+        x={x}
+        y={y}
+        fill={borderColor || "black"}
+        fontSize={24}
+        fontFamily="Arial"
+        fontWeight="bold"
+      >
+        {text}
+      </text>
+      <circle
+        x={x + 50} // Offset for text placement
+        y={y + 20} // Offset for text placement
+        radius={20}
+        stroke={borderColor || "black"}
         strokeWidth={2}
-        shadowBlur={3}
+        fill="white"
       />
-      {/* Text inside the oval */}
-      <Text
-        text={text}
-        fontSize={16 * zoom} // Font size of the text
+      <text
+        x={x + 30}
+        y={y + 15}
+        fill={borderColor || "black"}
+        fontSize={14}
         fontFamily="Arial"
-        fill={textColor || "blue"} // Text color
-        stroke="black"
-        strokeWidth={1}
-        padding={5}
-        align="center" // Center the text horizontally
-        verticalAlign="middle" // Center the text vertically
-        x={(ovalWidth - textWidth) / 2} // Center the text horizontally inside the oval
-        y={(ovalHeight - textHeight) / 2} // Center the text vertically inside the oval
-      />
-      {/* Date text */}
-      <Text
-        text={new Date().toLocaleDateString()}
-        fontSize={12 * zoom} // Font size for the date
-        fontFamily="Arial"
-        fill={dateColor || "black"} // Date text color
-        stroke="black"
-        strokeWidth={1}
-        padding={5}
-        align="center" // Center the date horizontally
-        verticalAlign="middle" // Center the date vertically
-        x={(ovalWidth - textWidth) / 2} // Center the date horizontally inside the oval
-        y={ovalHeight - textHeight / 2} // Position the date text at the bottom
-      />
-    </Group>
+        textAnchor="middle"
+      >
+        {text}
+      </text>
+      <foreignObject x={x + 50} y={y + 40} width={100} height={50}>
+        <div
+          onClick={() => onDelete(id)}
+          className="bg-red-500 text-white rounded px-2 py-1 cursor-pointer"
+        >
+          Delete
+        </div>
+      </foreignObject>
+    </React.Fragment>
   );
 };
 
