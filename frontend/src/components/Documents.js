@@ -174,7 +174,7 @@ const Documents = () => {
             <p><strong>Uploaded By:</strong> {viewDocument.metadata?.uploaded_by || "Unknown"}</p>
             <p><strong>Created At:</strong> {new Date(viewDocument.created_at).toLocaleString()}</p>
             <p><strong>Version:</strong> {viewDocument.version}</p>
-            <p><strong>File:</strong> <a href={viewDocument.file} target="_blank" rel="noopener noreferrer" className="text-blue-500">View File</a></p>
+            <p><strong>File:</strong> <a href={viewDocument.file} target="_blank" rel="noopener noreferrer" className="text-primary">View File</a></p>
             <button onClick={closeViewModal} className="mt-4 bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600">Close</button>
           </div>
         </div>

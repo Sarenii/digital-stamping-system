@@ -1,6 +1,8 @@
+// src/components/StampManager.js
 import React, { useEffect, useState } from "react";
 import { getStamps, deleteStamp } from "../services/stampService";
 import { useAuth } from "../Context/AuthContext";
+import NavBar from "./NavBar"; // Import NavBar
 
 const StampManager = () => {
   const [stamps, setStamps] = useState([]);
@@ -21,7 +23,7 @@ const StampManager = () => {
         }
 
         const stampsData = await getStamps();
-        console.log("Fetched stamps:", stampsData); // Log the fetched stamps
+        console.log("Fetched stamps:", stampsData);
         setStamps(stampsData);
         setLoading(false);
       } catch (error) {
@@ -53,81 +55,81 @@ const StampManager = () => {
   }
 
   return (
-    <div className="stamp-manager p-4">
-      <h2 className="text-xl font-bold mb-4">Manage Stamps</h2>
-      {stamps.length === 0 ? (
-        <p>No stamps available.</p>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          {stamps.map((stamp) => {
-            console.log("Stamp shape:", stamp.shape); // Log each stamp's shape value
+    <>
+      <NavBar /> {/* Include NavBar */}
+      <div className="stamp-manager p-4">
+        <h2 className="text-xl font-bold mb-4">Manage Stamps</h2>
+        {stamps.length === 0 ? (
+          <p>No stamps available.</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+            {stamps.map((stamp) => {
+              let shapeClasses = "";
+              if (stamp.shape === "Circle") {
+                shapeClasses = "rounded-full";
+              } else if (stamp.shape === "Square") {
+                shapeClasses = "rounded-md";
+              } else if (stamp.shape === "Star") {
+                shapeClasses = "star-shape"; // Custom class for Star
+              } else {
+                shapeClasses = "rounded-md";
+              }
 
-            // Logic to apply different styles based on the shape
-            let shapeClasses = "";
-            if (stamp.shape === "Circle") {
-              shapeClasses = "rounded-full";
-            } else if (stamp.shape === "Square") {
-              shapeClasses = "rounded-md";
-            } else if (stamp.shape === "Star") {
-              shapeClasses = "star-shape"; // Custom class for Star (define it in CSS)
-            } else {
-              shapeClasses = "rounded-md"; // Default to square if no known shape
-            }
-
-            return (
-              <div
-                key={stamp.id}
-                className="relative w-48 h-48 mx-auto flex items-center justify-center bg-accent text-primary shadow-lg"
-              >
-                {/* Outer Shape */}
+              return (
                 <div
-                  className={`absolute ${shapeClasses} w-full h-full border-4 border-primary`}
-                  style={{ backgroundColor: stamp.shape_color }}
-                ></div>
-
-                {/* Inner Shape */}
-                <div
-                  className={`absolute ${shapeClasses} w-32 h-32 flex items-center justify-center`}
-                  style={{
-                    backgroundColor: "#fff",
-                  }}
+                  key={stamp.id}
+                  className="relative w-48 h-48 mx-auto flex items-center justify-center bg-accent text-primary shadow-lg"
                 >
-                  <p className="text-sm" style={{ color: stamp.date_color }}>
-                    {stamp.date}
-                  </p>
-                </div>
+                  {/* Outer Shape */}
+                  <div
+                    className={`absolute ${shapeClasses} w-full h-full border-4 border-primary`}
+                    style={{ backgroundColor: stamp.shape_color }}
+                  ></div>
 
-                {/* Top Text */}
-                <p
-                  className="absolute text-sm font-bold w-full text-center top-4"
-                  style={{ color: stamp.text_color }}
-                >
-                  {stamp.top_text}
-                </p>
+                  {/* Inner Shape */}
+                  <div
+                    className={`absolute ${shapeClasses} w-32 h-32 flex items-center justify-center`}
+                    style={{
+                      backgroundColor: "#fff",
+                    }}
+                  >
+                    <p className="text-sm" style={{ color: stamp.date_color }}>
+                      {stamp.date}
+                    </p>
+                  </div>
 
-                {/* Bottom Text */}
-                {stamp.bottom_text && (
+                  {/* Top Text */}
                   <p
-                    className="absolute text-sm font-bold w-full text-center bottom-4"
+                    className="absolute text-sm font-bold w-full text-center top-4"
                     style={{ color: stamp.text_color }}
                   >
-                    {stamp.bottom_text}
+                    {stamp.top_text}
                   </p>
-                )}
 
-                {/* Delete Button */}
-                <button
-                  className="absolute bottom-0 right-0 bg-primary text-accent px-2 py-1 rounded-lg text-xs shadow-md"
-                  onClick={() => handleDelete(stamp.id)}
-                >
-                  Delete
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
+                  {/* Bottom Text */}
+                  {stamp.bottom_text && (
+                    <p
+                      className="absolute text-sm font-bold w-full text-center bottom-4"
+                      style={{ color: stamp.text_color }}
+                    >
+                      {stamp.bottom_text}
+                    </p>
+                  )}
+
+                  {/* Delete Button */}
+                  <button
+                    className="absolute bottom-0 right-0 bg-primary text-accent px-2 py-1 rounded-lg text-xs shadow-md"
+                    onClick={() => handleDelete(stamp.id)}
+                  >
+                    Delete
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </>
   );
 };
 

@@ -6,7 +6,7 @@ const LandingPage = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="flex flex-col items-center justify-start min-h-screen bg-gradient-to-r from-blue-600 to-indigo-700 text-white">
+    <div className="flex flex-col items-center justify-start min-h-screen bg-gradient-to-r from-primary to-indigo-700 text-white">
       {/* Hero Section with Background Image */}
       <div
         className="relative w-full h-[60vh] bg-cover bg-center"

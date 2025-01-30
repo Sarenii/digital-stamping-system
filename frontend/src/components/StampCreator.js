@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import axios from "axios"; // Make sure axios is imported
-import { useAuth } from "../Context/AuthContext"; // Assuming your context is in the contexts folder
-import NavBar from "./NavBar"; // Import the NavBar component
+import axios from "axios";
+import { useAuth } from "../Context/AuthContext";
+import NavBar from "./NavBar";
 
 const StampCreator = ({ createStamp }) => {
   const [shape, setShape] = useState("Circle");
@@ -11,14 +11,15 @@ const StampCreator = ({ createStamp }) => {
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [topText, setTopText] = useState("");
   const [bottomText, setBottomText] = useState("");
+  const [successMessage, setSuccessMessage] = useState(""); // State for success message
+  const [errorMessage, setErrorMessage] = useState(""); // State for error message
 
-  // Access user info and token from AuthContext
   const { user } = useAuth();
-  const token = user?.accessToken || localStorage.getItem("accessToken"); // Get the token from context or localStorage
+  const token = user?.accessToken || localStorage.getItem("accessToken");
 
   const handleCreateStamp = async () => {
     if (!token) {
-      console.error("No token found! Please log in.");
+      setErrorMessage("No token found! Please log in.");
       return;
     }
 
@@ -32,32 +33,40 @@ const StampCreator = ({ createStamp }) => {
       bottom_text: bottomText,
     };
 
-    console.log("Token being used:", token); // Debugging log
-
     try {
       const response = await axios.post(
         "http://localhost:8000/stamps/stamps/",
         stampData,
         {
           headers: {
-            Authorization: `Bearer ${token}`, // Pass token here
+            Authorization: `Bearer ${token}`,
           },
         }
       );
-      console.log("Stamp created:", response.data);
-      createStamp(response.data); // Update UI if necessary with the created stamp
+      setSuccessMessage("Stamp created successfully!"); // Show success message
+      setErrorMessage(""); // Clear any previous error
+      createStamp(response.data); // Update UI with the created stamp
     } catch (error) {
+      setErrorMessage("Error creating stamp. Please try again.");
+      setSuccessMessage(""); // Clear any previous success message
       console.error("Error creating stamp:", error.response || error);
     }
   };
 
   return (
     <>
-      <NavBar /> {/* Add the NavBar component here */}
+      <NavBar />
       <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md mx-auto mt-4">
         <h2 className="text-lg font-bold mb-6">Create Your Stamp</h2>
 
-        {/* Shape selection */}
+        {successMessage && (
+          <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">{successMessage}</div>
+        )}
+
+        {errorMessage && (
+          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{errorMessage}</div>
+        )}
+
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Shape</label>
           <select
@@ -71,7 +80,6 @@ const StampCreator = ({ createStamp }) => {
           </select>
         </div>
 
-        {/* Shape color */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Shape Color</label>
           <input
@@ -82,7 +90,6 @@ const StampCreator = ({ createStamp }) => {
           />
         </div>
 
-        {/* Text color */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Text Color</label>
           <input
@@ -93,7 +100,6 @@ const StampCreator = ({ createStamp }) => {
           />
         </div>
 
-        {/* Date color */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Date Color</label>
           <input
@@ -104,7 +110,6 @@ const StampCreator = ({ createStamp }) => {
           />
         </div>
 
-        {/* Date input */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Date</label>
           <input
@@ -115,7 +120,6 @@ const StampCreator = ({ createStamp }) => {
           />
         </div>
 
-        {/* Top text input */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Top Text (Required)</label>
           <input
@@ -128,7 +132,6 @@ const StampCreator = ({ createStamp }) => {
           />
         </div>
 
-        {/* Bottom text input */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Bottom Text (Optional)</label>
           <input
@@ -140,7 +143,6 @@ const StampCreator = ({ createStamp }) => {
           />
         </div>
 
-        {/* Create stamp button */}
         <button
           className="w-full bg-primary text-white py-2 rounded hover:bg-accent hover:text-primary transition"
           onClick={handleCreateStamp}

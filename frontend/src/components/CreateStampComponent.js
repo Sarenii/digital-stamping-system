@@ -55,7 +55,7 @@ const CreateStampComponent = ({ onCreate, onClose }) => {
         <div className="flex justify-between items-center">
           <button
             onClick={handleCreate}
-            className="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl"
+            className="bg-primary hover:bg-primary text-white py-2 rounded-xl"
           >
             Create Stamp
           </button>

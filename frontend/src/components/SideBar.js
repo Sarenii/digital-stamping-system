@@ -1,43 +1,36 @@
-import React, { useRef } from "react";
+import React, { useState } from "react";
 
-const SideBar = ({ uploadDocument, addStamp }) => {
-  const fileInputRef = useRef(null);
+const SideBar = ({ addStamp, uploadDocument, isButtonActive }) => {
+  const [file, setFile] = useState(null);
+
+  const handleFileSelect = (e) => {
+    setFile(e.target.files[0]);
+  };
+
+  const handleUpload = () => {
+    if (file) {
+      uploadDocument(file);
+    }
+  };
 
   return (
-    <aside className="bg-secondary text-accent w-1/4 p-6 shadow-lg">
-      <h2 className="text-lg font-bold mb-6">Tools</h2>
-
-      {/* Add Stamp Button */}
+    <div className="bg-primary-100 w-60 p-4 flex flex-col gap-4">
+      <label className="block">
+        <span className="text-white">Upload Document</span>
+        <input
+          type="file"
+          onChange={handleFileSelect}
+          className="mt-1 block w-full"
+        />
+      </label>
       <button
-        className="w-full bg-primary text-white py-2 rounded mb-4 hover:bg-accent hover:text-primary transition"
-        onClick={addStamp}
+        onClick={handleUpload}
+        className="bg-accent text-white py-2 px-4 rounded hover:bg-accent-900"
       >
-        Add Stamp
+        Upload
       </button>
-
-      {/* Upload Document Button */}
-      <button
-        className="w-full bg-primary text-white py-2 rounded mb-4 hover:bg-accent hover:text-primary transition"
-        onClick={() => fileInputRef.current.click()}
-      >
-        Upload Document
-      </button>
-
-      {/* Hidden File Input */}
-      <input
-        type="file"
-        ref={fileInputRef}
-        accept=".jpg,.jpeg,.png,.pdf,.docx"
-        className="hidden"
-        onChange={(e) => {
-          if (e.target.files.length > 0) {
-            uploadDocument(e.target.files[0]);
-          }
-        }}
-      />
-
-    
-    </aside>
+      
+    </div>
   );
 };
 

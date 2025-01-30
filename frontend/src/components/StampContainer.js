@@ -14,7 +14,7 @@ const StampContainer = () => {
   return (
     <div>
       <button
-        className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
+        className="bg-primary text-white py-2 px-4 rounded hover:bg-primary"
         onClick={() => setModalOpen(true)}
       >
         Create Stamp

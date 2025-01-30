@@ -14,7 +14,7 @@ const StampSelectionModal = ({ onSelect, onClose }) => {
         <div className="space-y-4">
           <button
             onClick={() => onSelect("APPROVED")}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl transition duration-200"
+            className="w-full bg-primary hover:bg-primary text-white py-2 rounded-xl transition duration-200"
           >
             APPROVED
           </button>
