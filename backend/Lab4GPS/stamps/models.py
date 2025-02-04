@@ -1,6 +1,7 @@
 # models.py
 from django.db import models
 from django.conf import settings  # Import settings to access the custom user model
+from django.utils.crypto import get_random_string
 
 # Stamp Model
 class Stamp(models.Model):
@@ -24,15 +25,38 @@ class Stamp(models.Model):
         return f"{self.shape} Stamp - {self.user.username}"
 
 
-# Document Model
 class Document(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="documents")
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="documents"
+    )
     file = models.FileField(upload_to="documents/")
-    metadata = models.JSONField(default=dict)  # Store metadata like timestamp, user ID
+    metadata = models.JSONField(default=dict)
     stamped = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
-    timestamp = models.DateTimeField(auto_now_add=True)  # Add a timestamp field
-    version = models.CharField(max_length=100, default="1.0")  # Add a version field
+    timestamp = models.DateTimeField(auto_now_add=True)
+    version = models.CharField(max_length=100, default="1.0")
+
+    # New fields for Section B
+    serial_number = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        help_text="Unique serial number for each stamped doc."
+    )
+    qr_data = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Optionally store base64 or textual QR code data here."
+    )
 
     def __str__(self):
         return f"Document by {self.user.username}"
+
+    def save(self, *args, **kwargs):
+        # Assign a serial_number if not present
+        if not self.serial_number:
+            # Generate random alphanumeric string, e.g. 8 chars
+            self.serial_number = get_random_string(length=8).upper()
+        super().save(*args, **kwargs)
