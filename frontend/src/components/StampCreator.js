@@ -11,8 +11,8 @@ const StampCreator = ({ createStamp }) => {
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [topText, setTopText] = useState("");
   const [bottomText, setBottomText] = useState("");
-  const [successMessage, setSuccessMessage] = useState(""); // State for success message
-  const [errorMessage, setErrorMessage] = useState(""); // State for error message
+  const [successMessage, setSuccessMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
 
   const { user } = useAuth();
   const token = user?.accessToken || localStorage.getItem("accessToken");
@@ -43,12 +43,12 @@ const StampCreator = ({ createStamp }) => {
           },
         }
       );
-      setSuccessMessage("Stamp created successfully!"); // Show success message
-      setErrorMessage(""); // Clear any previous error
-      createStamp(response.data); // Update UI with the created stamp
+      setSuccessMessage("Stamp created successfully!");
+      setErrorMessage("");
+      createStamp(response.data);
     } catch (error) {
       setErrorMessage("Error creating stamp. Please try again.");
-      setSuccessMessage(""); // Clear any previous success message
+      setSuccessMessage("");
       console.error("Error creating stamp:", error.response || error);
     }
   };
@@ -80,6 +80,7 @@ const StampCreator = ({ createStamp }) => {
           </select>
         </div>
 
+        {/* Shape Color Selection */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Shape Color</label>
           <input
@@ -88,8 +89,17 @@ const StampCreator = ({ createStamp }) => {
             value={shapeColor}
             onChange={(e) => setShapeColor(e.target.value)}
           />
+          {/* Preview line that updates to the selected shape color */}
+          <hr
+            className="mt-2"
+            style={{
+              borderColor: shapeColor,
+              borderWidth: "2px",
+            }}
+          />
         </div>
 
+        {/* Text Color Selection */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Text Color</label>
           <input
@@ -98,8 +108,17 @@ const StampCreator = ({ createStamp }) => {
             value={textColor}
             onChange={(e) => setTextColor(e.target.value)}
           />
+          {/* Preview line that updates to the selected text color */}
+          <hr
+            className="mt-2"
+            style={{
+              borderColor: textColor,
+              borderWidth: "2px",
+            }}
+          />
         </div>
 
+        {/* Date Color Selection */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Date Color</label>
           <input
@@ -108,8 +127,17 @@ const StampCreator = ({ createStamp }) => {
             value={dateColor}
             onChange={(e) => setDateColor(e.target.value)}
           />
+          {/* Preview line that updates to the selected date color */}
+          <hr
+            className="mt-2"
+            style={{
+              borderColor: dateColor,
+              borderWidth: "2px",
+            }}
+          />
         </div>
 
+        {/* Date Field */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Date</label>
           <input
@@ -120,6 +148,7 @@ const StampCreator = ({ createStamp }) => {
           />
         </div>
 
+        {/* Top Text Field */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Top Text (Required)</label>
           <input
@@ -132,6 +161,7 @@ const StampCreator = ({ createStamp }) => {
           />
         </div>
 
+        {/* Bottom Text Field */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Bottom Text (Optional)</label>
           <input

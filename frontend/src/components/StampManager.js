@@ -1,8 +1,10 @@
 // src/components/StampManager.js
 import React, { useEffect, useState } from "react";
+import { Stage, Layer } from "react-konva";
 import { getStamps, deleteStamp } from "../services/stampService";
 import { useAuth } from "../Context/AuthContext";
-import NavBar from "./NavBar"; // Import NavBar
+import NavBar from "./NavBar";
+import StampComponent from "./StampComponent"; // <<-- Import the Konva-based StampComponent
 
 const StampManager = () => {
   const [stamps, setStamps] = useState([]);
@@ -56,76 +58,53 @@ const StampManager = () => {
 
   return (
     <>
-      <NavBar /> {/* Include NavBar */}
-      <div className="stamp-manager p-4">
+      <NavBar />
+      <div className="p-4">
         <h2 className="text-xl font-bold mb-4">Manage Stamps</h2>
         {stamps.length === 0 ? (
           <p>No stamps available.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {stamps.map((stamp) => {
-              let shapeClasses = "";
-              if (stamp.shape === "Circle") {
-                shapeClasses = "rounded-full";
-              } else if (stamp.shape === "Square") {
-                shapeClasses = "rounded-md";
-              } else if (stamp.shape === "Star") {
-                shapeClasses = "star-shape"; // Custom class for Star
-              } else {
-                shapeClasses = "rounded-md";
-              }
+            {stamps.map((stamp) => (
+              <div key={stamp.id} className="relative w-[140px] h-[140px]">
+                {/* 
+                  We create a Konva Stage at a fixed width/height 
+                  that matches what StampComponent expects (120px, 120px).
+                  If you need a larger or smaller preview, adjust as desired.
+                */}
+                <Stage width={120} height={120}>
+                  <Layer>
+                    <StampComponent
+                      // We only need enough props to draw the stamp
+                      id={stamp.id}
+                      x={0}
+                      y={0}
+                      zoom={1}
+                      pageY={0}
+                      shape={stamp.shape}
+                      shape_color={stamp.shape_color}
+                      text_color={stamp.text_color}
+                      date_color={stamp.date_color}
+                      top_text={stamp.top_text}
+                      bottom_text={stamp.bottom_text}
+                      date={stamp.date}
+                      // Remove onDrag/onDelete if you just want a static preview
+                    />
+                  </Layer>
+                </Stage>
 
-              return (
-                <div
-                  key={stamp.id}
-                  className="relative w-48 h-48 mx-auto flex items-center justify-center bg-accent text-primary shadow-lg"
+                {/* 
+                  Absolute-positioned DELETE button in the corner.
+                  Adjust styling as needed.
+                */}
+                <button
+                  className="absolute bottom-0 right-0 bg-primary text-white px-2 py-1 rounded text-xs"
+                  onClick={() => handleDelete(stamp.id)}
                 >
-                  {/* Outer Shape */}
-                  <div
-                    className={`absolute ${shapeClasses} w-full h-full border-4 border-primary`}
-                    style={{ backgroundColor: stamp.shape_color }}
-                  ></div>
-
-                  {/* Inner Shape */}
-                  <div
-                    className={`absolute ${shapeClasses} w-32 h-32 flex items-center justify-center`}
-                    style={{
-                      backgroundColor: "#fff",
-                    }}
-                  >
-                    <p className="text-sm" style={{ color: stamp.date_color }}>
-                      {stamp.date}
-                    </p>
-                  </div>
-
-                  {/* Top Text */}
-                  <p
-                    className="absolute text-sm font-bold w-full text-center top-4"
-                    style={{ color: stamp.text_color }}
-                  >
-                    {stamp.top_text}
-                  </p>
-
-                  {/* Bottom Text */}
-                  {stamp.bottom_text && (
-                    <p
-                      className="absolute text-sm font-bold w-full text-center bottom-4"
-                      style={{ color: stamp.text_color }}
-                    >
-                      {stamp.bottom_text}
-                    </p>
-                  )}
-
-                  {/* Delete Button */}
-                  <button
-                    className="absolute bottom-0 right-0 bg-primary text-accent px-2 py-1 rounded-lg text-xs shadow-md"
-                    onClick={() => handleDelete(stamp.id)}
-                  >
-                    Delete
-                  </button>
-                </div>
-              );
-            })}
+                  Delete
+                </button>
+              </div>
+            ))}
           </div>
         )}
       </div>

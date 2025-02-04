@@ -1,18 +1,21 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useAuth } from "../Context/AuthContext"; // Assuming AuthContext is in the Context folder
-import Navbar from "../components/NavBar"; // Assuming Navbar is located here
+import { useAuth } from "../Context/AuthContext"; // adjust path to your AuthContext
+import Navbar from "../components/NavBar"; // adjust path to your NavBar
+// If using your new documentService file:
+import { getDocuments } from "../services/documentService";
 
 const Documents = () => {
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [actionMenu, setActionMenu] = useState(null); // For controlling which document's menu is open
-  const [newName, setNewName] = useState(""); // For renaming document
-  const [viewDocument, setViewDocument] = useState(null); // For viewing document details
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // For delete modal
-  const [documentToDelete, setDocumentToDelete] = useState(null); // Document to delete
+  const [actionMenu, setActionMenu] = useState(null); // controls which document's menu is open
+  const [newName, setNewName] = useState(""); // for renaming
+  const [viewDocument, setViewDocument] = useState(null); // for viewing
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false); // for delete modal
+  const [documentToDelete, setDocumentToDelete] = useState(null);
 
+  // Auth
   const { user } = useAuth();
   const token = user?.accessToken || localStorage.getItem("accessToken");
 
@@ -24,12 +27,17 @@ const Documents = () => {
       }
       setLoading(true);
       try {
-        const response = await axios.get("http://localhost:8000/stamps/documents", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setDocuments(response.data.results); // Assuming the API returns documents in 'results'
+        // Using the getDocuments function from documentService:
+        const data = await getDocuments(token);
+
+        // If your backend returns { results: [...] }, adjust as needed:
+        if (data.results) {
+          setDocuments(data.results);
+        } else {
+          // If the data is an array directly, you can do: setDocuments(data);
+          // Or if data is an object with documents in a different key, adjust.
+          setDocuments(data);
+        }
       } catch (error) {
         console.error("Error fetching documents:", error);
         setError("Error fetching documents. Please try again.");
@@ -42,15 +50,16 @@ const Documents = () => {
   }, [token]);
 
   const handleMenuClick = (documentId) => {
-    setActionMenu(documentId === actionMenu ? null : documentId); // Toggle the menu visibility
+    // toggle the menu
+    setActionMenu(documentId === actionMenu ? null : documentId);
   };
 
   const handleRename = async (documentId) => {
-    if (!newName) return; // Do not proceed if new name is empty
+    if (!newName) return;
     try {
-      // Replace with your actual rename logic, e.g., API call
+      // Using axios directly for rename (adjust endpoint as needed):
       await axios.patch(
-        `http://localhost:8000/stamps/documents/${documentId}`,
+        `http://localhost:8000/stamps/documents/${documentId}/`,
         { title: newName },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -59,7 +68,7 @@ const Documents = () => {
           doc.id === documentId ? { ...doc, title: newName } : doc
         )
       );
-      setActionMenu(null); // Close the menu after renaming
+      setActionMenu(null);
     } catch (error) {
       console.error("Error renaming document:", error);
       setError("Error renaming document. Please try again.");
@@ -68,12 +77,16 @@ const Documents = () => {
 
   const handleDelete = async () => {
     try {
-      // Replace with your actual delete logic, e.g., API call
-      await axios.delete(`http://localhost:8000/stamps/documents/${documentToDelete.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setDocuments((prevDocs) => prevDocs.filter((doc) => doc.id !== documentToDelete.id));
-      setIsDeleteModalOpen(false); // Close delete modal after deletion
+      await axios.delete(
+        `http://localhost:8000/stamps/documents/${documentToDelete.id}/`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      setDocuments((prevDocs) =>
+        prevDocs.filter((doc) => doc.id !== documentToDelete.id)
+      );
+      setIsDeleteModalOpen(false);
     } catch (error) {
       console.error("Error deleting document:", error);
       setError("Error deleting document. Please try again.");
@@ -85,17 +98,17 @@ const Documents = () => {
   };
 
   const closeViewModal = () => {
-    setViewDocument(null); // Close the view modal
+    setViewDocument(null);
   };
 
   return (
     <div className="p-6">
-      <Navbar /> {/* Include the Navbar here */}
+      <Navbar />
       <h2 className="text-xl font-bold mb-4">My Documents</h2>
       {loading && <p>Loading documents...</p>}
       {error && <p className="text-red-500">{error}</p>}
       {!loading && !error && documents.length === 0 && (
-        <p>No documents available. Please upload a document to begin.</p>
+        <p>No documents available. Please upload or save a document to begin.</p>
       )}
       <div className="overflow-x-auto">
         <table className="min-w-full table-auto border-collapse">
@@ -110,12 +123,21 @@ const Documents = () => {
           </thead>
           <tbody>
             {documents.map((document) => {
-              const fileName = document.file.split("/").pop(); // Extract file name from the URL
+              // Fall back to "Unknown" file name if needed
+              const fileName = document.file
+                ? document.file.split("/").pop()
+                : "No filename";
               return (
                 <tr key={document.id}>
-                  <td className="border p-2">{fileName}</td>
-                  <td className="border p-2">{document.metadata?.uploaded_by || "Unknown"}</td>
-                  <td className="border p-2">{new Date(document.created_at).toLocaleString()}</td>
+                  <td className="border p-2">
+                    {document.title || fileName}
+                  </td>
+                  <td className="border p-2">
+                    {document.metadata?.uploaded_by || "Unknown"}
+                  </td>
+                  <td className="border p-2">
+                    {new Date(document.created_at).toLocaleString()}
+                  </td>
                   <td className="border p-2">{document.version}</td>
                   <td className="border p-2">
                     <div className="relative">
@@ -135,7 +157,10 @@ const Documents = () => {
                           </div>
                           <div
                             onClick={() => {
-                              const name = prompt("Enter new name:", document.title || fileName);
+                              const name = prompt(
+                                "Enter new name:",
+                                document.title || fileName
+                              );
                               if (name) {
                                 setNewName(name);
                                 handleRename(document.id);
@@ -170,12 +195,41 @@ const Documents = () => {
         <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50">
           <div className="bg-white p-6 rounded-lg w-96">
             <h3 className="text-xl font-bold mb-4">Document Details</h3>
-            <p><strong>Title:</strong> {viewDocument.title || "Untitled"}</p>
-            <p><strong>Uploaded By:</strong> {viewDocument.metadata?.uploaded_by || "Unknown"}</p>
-            <p><strong>Created At:</strong> {new Date(viewDocument.created_at).toLocaleString()}</p>
-            <p><strong>Version:</strong> {viewDocument.version}</p>
-            <p><strong>File:</strong> <a href={viewDocument.file} target="_blank" rel="noopener noreferrer" className="text-primary">View File</a></p>
-            <button onClick={closeViewModal} className="mt-4 bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600">Close</button>
+            <p>
+              <strong>Title:</strong>{" "}
+              {viewDocument.title || "Untitled"}
+            </p>
+            <p>
+              <strong>Uploaded By:</strong>{" "}
+              {viewDocument.metadata?.uploaded_by || "Unknown"}
+            </p>
+            <p>
+              <strong>Created At:</strong>{" "}
+              {new Date(viewDocument.created_at).toLocaleString()}
+            </p>
+            <p>
+              <strong>Version:</strong> {viewDocument.version}
+            </p>
+            {viewDocument.file && (
+              <p>
+                <strong>File:</strong>{" "}
+                <a
+                  href={viewDocument.file}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary"
+                >
+                  View File
+                </a>
+              </p>
+            )}
+
+            <button
+              onClick={closeViewModal}
+              className="mt-4 bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}

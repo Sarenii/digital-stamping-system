@@ -16,7 +16,7 @@ const SideBar = ({ addStamp, uploadDocument, isButtonActive }) => {
   return (
     <div className="bg-primary-100 w-60 p-4 flex flex-col gap-4">
       <label className="block">
-        <span className="text-white">Upload Document</span>
+        <span className="text-blue">Upload Document</span>
         <input
           type="file"
           onChange={handleFileSelect}
@@ -25,7 +25,7 @@ const SideBar = ({ addStamp, uploadDocument, isButtonActive }) => {
       </label>
       <button
         onClick={handleUpload}
-        className="bg-accent text-white py-2 px-4 rounded hover:bg-accent-900"
+        className="bg-primary text-white py-2 px-4 rounded hover:bg-accent-900"
       >
         Upload
       </button>
