@@ -1,12 +1,20 @@
 import React from "react";
-import { Group, Circle, Rect, Shape, Text, TextPath, Image as KonvaImage } from "react-konva";
+import {
+  Group,
+  Circle,
+  Rect,
+  Shape,
+  Text,
+  TextPath,
+  Image as KonvaImage,
+} from "react-konva";
 
 // Stamp Dimensions
-const STAMP_SIZE = 120;        // Base diameter/width
-const BORDER_WIDTH = 1.5;      // Border thickness
-const RING_GAP = 15;           // Gap between outer & inner border (for circle/square)
-const ARC_PADDING = 8;         // Extra inset for arc text so it doesn't overlap lines
-const STAR_SYMBOL = "★";       // Symbol used for the circle’s left/right stars
+const STAMP_SIZE = 120;
+const BORDER_WIDTH = 1.5;
+const RING_GAP = 15;
+const ARC_PADDING = 8;
+const STAR_SYMBOL = "★";
 
 /**
  * Draw a star using raw canvas commands (for the Star shape).
@@ -22,13 +30,11 @@ function drawStar(ctx, size) {
 
   ctx.beginPath();
   for (let i = 0; i < spikes; i++) {
-    // Outer vertex
     let xPos = centerX + Math.cos(rot) * outerRadius;
     let yPos = centerY + Math.sin(rot) * outerRadius;
     ctx.lineTo(xPos, yPos);
     rot += step;
 
-    // Inner vertex
     xPos = centerX + Math.cos(rot) * innerRadius;
     yPos = centerY + Math.sin(rot) * innerRadius;
     ctx.lineTo(xPos, yPos);
@@ -39,9 +45,9 @@ function drawStar(ctx, size) {
 
 /**
  * Build an arc path for <TextPath/>, using SVG arc commands.
- * - (cx, cy): circle center
- * - r: radius
- * - startAngle, endAngle: in radians
+ * (cx, cy): circle center
+ * r: radius
+ * startAngle, endAngle in radians
  */
 function arcPath(cx, cy, r, startAngle, endAngle, clockwise = false) {
   const startX = cx + r * Math.cos(startAngle);
@@ -50,13 +56,10 @@ function arcPath(cx, cy, r, startAngle, endAngle, clockwise = false) {
   const endY = cy + r * Math.sin(endAngle);
   const sweepFlag = clockwise ? 0 : 1;
 
-  // "large-arc-flag=0" (never exceed 180°).
-  // Format: M x1,y1 A rx,ry 0 0,sweepFlag x2,y2
   return `M ${startX},${startY} A ${r},${r} 0 0,${sweepFlag} ${endX},${endY}`;
 }
 
 const StampComponent = ({
-  // Basic stamp props
   id,
   x,
   y,
@@ -68,38 +71,27 @@ const StampComponent = ({
   top_text = "",
   bottom_text = "",
   date = "",
-  // For QR
-  qrImage,             // A Konva-compatible image object for the QR
-  // Event handlers
+  qrImage, // a Konva-compatible Image object if shape="QR"
   onDelete,
   onDragEnd,
-  // Position offset for multi-page
-  pageY
+  pageY,
 }) => {
-  //
-  // Positioning / Scaling
-  //
+  // Positioning
   const scaledX = x * zoom;
   const scaledY = y * zoom + pageY;
   const mainFontSize = 14 * zoom;
   const dateFontSize = 12 * zoom;
   const starFontSize = 16 * zoom;
 
-  /**
-   * Drag end → update parent with new (x,y)
-   */
+  // When stamp stops dragging
   const handleDragEnd = (e) => {
     const { x: newX, y: newY } = e.target.position();
-    if (onDragEnd) {
-      onDragEnd(id, newX / zoom, (newY - pageY) / zoom);
-    }
+    onDragEnd(id, newX / zoom, (newY - pageY) / zoom);
   };
 
-  /**
-   * Delete stamp → call parent, stop event bubble
-   */
+  // Deletion
   const handleDelete = (e) => {
-    e.cancelBubble = true;
+    e.cancelBubble = true; // Stop event bubble
     onDelete(id);
   };
 
@@ -109,24 +101,23 @@ const StampComponent = ({
       y={scaledY}
       width={STAMP_SIZE}
       height={STAMP_SIZE}
-      draggable
+      draggable // <-- allows user to move the entire stamp, including QR
       onDragEnd={handleDragEnd}
     >
-      {/** ============== QR CODE ============== **/}
+      {/**
+       * ============== QR CODE ==============
+       * If shape === "QR", display the QR as a Konva Image
+       */}
       {shape === "QR" && qrImage && (
-        <>
-          {/* Render a Konva Image for the QR code */}
-          <KonvaImage
-            image={qrImage}
-            width={STAMP_SIZE}
-            height={STAMP_SIZE}
-            listening={false}
-          />
-          {/* You could optionally add text below or above the QR */}
-        </>
+        <KonvaImage
+          image={qrImage}
+          width={STAMP_SIZE}
+          height={STAMP_SIZE}
+          // REMOVE listening={false} so we can click on it to drag
+        />
       )}
 
-      {/** =============== CIRCLE =============== **/}
+      {/** ============== CIRCLE ============== **/}
       {shape === "Circle" && (
         <>
           {/* Outer ring */}
@@ -148,7 +139,7 @@ const StampComponent = ({
             y={STAMP_SIZE / 2}
           />
 
-          {/* Top text in arc (180°→360°) */}
+          {/* Top text in arc */}
           {top_text && (
             <TextPath
               fill={text_color}
@@ -158,8 +149,8 @@ const StampComponent = ({
                 STAMP_SIZE / 2,
                 STAMP_SIZE / 2,
                 STAMP_SIZE / 2 - ARC_PADDING,
-                Math.PI,       // startAngle: 180°
-                2 * Math.PI    // endAngle: 360°
+                Math.PI,
+                2 * Math.PI
               )}
               text={top_text.toUpperCase()}
               align="center"
@@ -167,7 +158,7 @@ const StampComponent = ({
             />
           )}
 
-          {/* Bottom text in arc (0°→180°) */}
+          {/* Bottom text in arc */}
           {bottom_text && (
             <TextPath
               fill={text_color}
@@ -177,8 +168,8 @@ const StampComponent = ({
                 STAMP_SIZE / 2,
                 STAMP_SIZE / 2,
                 STAMP_SIZE / 2 - ARC_PADDING,
-                0,         // startAngle
-                Math.PI    // endAngle
+                0,
+                Math.PI
               )}
               text={bottom_text.toUpperCase()}
               align="center"
@@ -186,7 +177,7 @@ const StampComponent = ({
             />
           )}
 
-          {/* Left Star (π) */}
+          {/* Left star */}
           <Text
             text={STAR_SYMBOL}
             fill={shape_color}
@@ -195,17 +186,16 @@ const StampComponent = ({
             offsetX={starFontSize / 2}
             offsetY={starFontSize / 2}
             x={
-              (STAMP_SIZE / 2) +
+              STAMP_SIZE / 2 +
               (STAMP_SIZE / 2 - RING_GAP / 2) * Math.cos(Math.PI)
             }
             y={
-              (STAMP_SIZE / 2) +
+              STAMP_SIZE / 2 +
               (STAMP_SIZE / 2 - RING_GAP / 2) * Math.sin(Math.PI)
             }
             listening={false}
           />
-
-          {/* Right Star (0) */}
+          {/* Right star */}
           <Text
             text={STAR_SYMBOL}
             fill={shape_color}
@@ -214,11 +204,11 @@ const StampComponent = ({
             offsetX={starFontSize / 2}
             offsetY={starFontSize / 2}
             x={
-              (STAMP_SIZE / 2) +
+              STAMP_SIZE / 2 +
               (STAMP_SIZE / 2 - RING_GAP / 2) * Math.cos(0)
             }
             y={
-              (STAMP_SIZE / 2) +
+              STAMP_SIZE / 2 +
               (STAMP_SIZE / 2 - RING_GAP / 2) * Math.sin(0)
             }
             listening={false}
@@ -241,7 +231,7 @@ const StampComponent = ({
         </>
       )}
 
-      {/** =============== SQUARE =============== **/}
+      {/** ============== SQUARE ============== **/}
       {shape === "Square" && (
         <>
           {/* Outer square */}
@@ -291,7 +281,7 @@ const StampComponent = ({
               listening={false}
             />
           )}
-          {/* Centered Date */}
+          {/* Centered date */}
           {date && (
             <Text
               text={date}
@@ -308,7 +298,7 @@ const StampComponent = ({
         </>
       )}
 
-      {/** =============== STAR =============== **/}
+      {/** ============== STAR ============== **/}
       {shape === "Star" && (
         <>
           {/* Outer star */}
