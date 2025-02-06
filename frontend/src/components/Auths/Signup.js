@@ -10,7 +10,9 @@ const Signup = () => {
     password: "",
     first_name: "",
     last_name: "",
+    role: "INDIVIDUAL",  // Default role set to Individual
   });
+
   const [otp, setOtp] = useState("");
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
@@ -57,97 +59,154 @@ const Signup = () => {
 
   if (step === 3 && success) {
     return (
-      <div className="signup-success">
-        <h1>Account Created!</h1>
-        <p>Your account has been verified successfully. You can now log in.</p>
-        <button onClick={() => navigate("/login")} className="go-login">
-          Go to Login
-        </button>
+      <div className="flex items-center justify-center min-h-screen bg-gray-100">
+        <div className="bg-white p-8 rounded-lg shadow-md max-w-sm w-full text-center">
+          <h1 className="text-3xl font-bold text-green-600">🎉 Account Created!</h1>
+          <p className="mt-3 text-gray-700">Your account has been verified successfully. You can now log in.</p>
+          <button
+            onClick={() => navigate("/login")}
+            className="mt-4 w-full py-3 bg-primary text-white rounded-lg hover:bg-accent transition duration-300"
+          >
+            Go to Login
+          </button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="signup-page">
-      <div className="signup-container">
+    <div className="flex items-center justify-center min-h-screen bg-gray-100">
+      <div className="bg-white p-8 rounded-lg shadow-lg max-w-sm w-full">
         {step === 1 && (
-          <div className="signup-form-container">
-            <h1>Create an Account</h1>
-            <form onSubmit={handleSignup} className="signup-form">
-              <label>Email:</label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-              />
-              <label>Username:</label>
-              <input
-                type="text"
-                name="username"
-                value={formData.username}
-                onChange={handleChange}
-                required
-              />
-              <label>Password:</label>
-              <div className="password-container">
+          <>
+            <h1 className="text-3xl font-bold text-center mb-6">Sign Up</h1>
+            <form onSubmit={handleSignup} className="space-y-4">
+              {/* Fields */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Email:</label>
                 <input
-                  type={showPassword ? "text" : "password"}
-                  name="password"
-                  value={formData.password}
+                  type="email"
+                  name="email"
+                  value={formData.email}
                   onChange={handleChange}
                   required
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
                 />
-                <span
-                  className="toggle-password-icon"
-                  onClick={() => setShowPassword((prev) => !prev)}
-                >
-                  {showPassword ? <FaEyeSlash /> : <FaEye />}
-                </span>
               </div>
-              <label>First Name:</label>
-              <input
-                type="text"
-                name="first_name"
-                value={formData.first_name}
-                onChange={handleChange}
-                required
-              />
-              <label>Last Name:</label>
-              <input
-                type="text"
-                name="last_name"
-                value={formData.last_name}
-                onChange={handleChange}
-                required
-              />
-              {error && <p className="error-message">{error}</p>}
-              <button type="submit" disabled={isLoading}>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Username:</label>
+                <input
+                  type="text"
+                  name="username"
+                  value={formData.username}
+                  onChange={handleChange}
+                  required
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Password:</label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    required
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
+                  />
+                  <span
+                    className="absolute inset-y-0 right-3 flex items-center cursor-pointer"
+                    onClick={() => setShowPassword((prev) => !prev)}
+                  >
+                    {showPassword ? <FaEyeSlash /> : <FaEye />}
+                  </span>
+                </div>
+              </div>
+              <div className="flex space-x-4">
+                <div className="w-1/2">
+                  <label className="block text-sm font-medium text-gray-700">First Name:</label>
+                  <input
+                    type="text"
+                    name="first_name"
+                    value={formData.first_name}
+                    onChange={handleChange}
+                    required
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
+                  />
+                </div>
+                <div className="w-1/2">
+                  <label className="block text-sm font-medium text-gray-700">Last Name:</label>
+                  <input
+                    type="text"
+                    name="last_name"
+                    value={formData.last_name}
+                    onChange={handleChange}
+                    required
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
+                  />
+                </div>
+              </div>
+
+              {/* Role Selection Dropdown */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Role:</label>
+                <select
+                  name="role"
+                  value={formData.role}
+                  onChange={handleChange}
+                  required
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
+                >
+                  <option value="INDIVIDUAL">Individual</option>
+                  <option value="COMPANY">Company</option>
+                </select>
+              </div>
+
+              {error && <p className="text-red-500 text-sm">{error}</p>}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-3 bg-primary text-white rounded-lg hover:bg-accent transition duration-300"
+              >
                 {isLoading ? "Signing Up..." : "Sign Up"}
               </button>
             </form>
-          </div>
+          </>
         )}
 
         {step === 2 && (
-          <div className="otp-verification-container">
-            <h1>Verify Your Account</h1>
-            <form onSubmit={handleVerifyOtp} className="otp-form">
-              <label>Enter OTP:</label>
+          <>
+            <h1 className="text-3xl font-bold text-center mb-6">Verify Your Account</h1>
+            <form onSubmit={handleVerifyOtp} className="space-y-4">
+              <label className="block text-sm font-medium text-gray-700">Enter OTP:</label>
               <input
                 type="text"
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 required
+                className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-accent"
               />
-              {error && <p className="error-message">{error}</p>}
-              <button type="submit" disabled={isLoading}>
+              {error && <p className="text-red-500 text-sm">{error}</p>}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition duration-300"
+              >
                 {isLoading ? "Verifying..." : "Verify OTP"}
               </button>
             </form>
-          </div>
+          </>
         )}
+
+        <div className="mt-4 text-center text-sm">
+          <p>
+            Already have an account?{" "}
+            <a href="/login" className="text-accent hover:underline">
+              Login here
+            </a>
+          </p>
+        </div>
       </div>
     </div>
   );
