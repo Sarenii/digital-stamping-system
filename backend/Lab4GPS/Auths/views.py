@@ -1,7 +1,7 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.parsers import MultiPartParser, FormParser, JSONParser  # <-- ADDED JSONParser
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework_simplejwt.tokens import RefreshToken
 from .models import CustomUser
 from .serializers import (
@@ -26,10 +26,13 @@ class RegisterView(generics.CreateAPIView):
     permission_classes = [AllowAny]
 
     def post(self, request, *args, **kwargs):
-        # Validate request data for first_name and last_name
-        if "first_name" not in request.data or "last_name" not in request.data:
+        # Validate request data for required fields
+        required_fields = ["first_name", "last_name", "email", "username", "password"]
+        missing_fields = [field for field in required_fields if field not in request.data]
+
+        if missing_fields:
             return Response(
-                {"error": "First name and last name are required."},
+                {"error": f"Missing required fields: {', '.join(missing_fields)}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
@@ -51,6 +54,10 @@ class VerifyOtpView(generics.GenericAPIView):
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data
+        user.is_verified = True
+        user.save()
+
         return Response(
             {"message": "OTP verified successfully. Account activated."},
             status=status.HTTP_200_OK,
@@ -67,6 +74,13 @@ class LoginView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data
+
+        if not user.is_verified:
+            return Response(
+                {"error": "Your email is not verified. Please verify using OTP."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
         refresh = RefreshToken.for_user(user)
         return Response(
             {
@@ -74,6 +88,54 @@ class LoginView(generics.GenericAPIView):
                 "access": str(refresh.access_token),
                 "user": UserProfileSerializer(user).data,
             },
+            status=status.HTTP_200_OK,
+        )
+
+class UserProfileView(generics.RetrieveAPIView):
+    """
+    API endpoint to retrieve the authenticated user's profile.
+    """
+    serializer_class = UserProfileSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+class UpdateProfileView(generics.UpdateAPIView):
+    """
+    API endpoint to update user profile details.
+    """
+    serializer_class = UpdateProfileSerializer
+    permission_classes = [IsAuthenticated]
+    parser_classes = [JSONParser]  
+
+    def get_object(self):
+        return self.request.user
+
+class UpdateProfilePictureView(generics.UpdateAPIView):
+    """
+    API endpoint to update the user's profile picture.
+    """
+    serializer_class = UpdateProfilePictureSerializer
+    parser_classes = [MultiPartParser, FormParser]
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+class ChangePasswordView(generics.GenericAPIView):
+    """
+    API endpoint to change the user's password.
+    """
+    serializer_class = ChangePasswordSerializer
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data, context={"request": request})
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(
+            {"message": "Password changed successfully."},
             status=status.HTTP_200_OK,
         )
 
@@ -119,60 +181,5 @@ class ResetPasswordView(generics.GenericAPIView):
         serializer.is_valid(raise_exception=True)
         return Response(
             {"message": "Password reset successfully. You can now log in."},
-            status=status.HTTP_200_OK,
-        )
-
-class UserProfileView(generics.RetrieveAPIView):
-    """
-    API endpoint to retrieve the authenticated user's profile.
-    """
-    serializer_class = UserProfileSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request, *args, **kwargs):
-        user = self.request.user
-        print(f"First Name: {user.first_name}, Last Name: {user.last_name}, Role: {user.role}")
-        serializer = self.get_serializer(user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
-
-    def get_object(self):
-        return self.request.user
-
-
-class UpdateProfileView(generics.UpdateAPIView):
-    """
-    API endpoint to update user profile details.
-    """
-    serializer_class = UpdateProfileSerializer
-    permission_classes = [IsAuthenticated]
-    parser_classes = [JSONParser]  # <-- ADDED: Accept JSON to avoid "Unsupported media type"
-
-    def get_object(self):
-        return self.request.user
-
-class UpdateProfilePictureView(generics.UpdateAPIView):
-    """
-    API endpoint to update the user's profile picture.
-    """
-    serializer_class = UpdateProfilePictureSerializer
-    parser_classes = [MultiPartParser, FormParser]
-    permission_classes = [IsAuthenticated]
-
-    def get_object(self):
-        return self.request.user
-
-class ChangePasswordView(generics.GenericAPIView):
-    """
-    API endpoint to change the user's password.
-    """
-    serializer_class = ChangePasswordSerializer
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request, *args, **kwargs):
-        serializer = self.get_serializer(data=request.data, context={"request": request})
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(
-            {"message": "Password changed successfully."},
             status=status.HTTP_200_OK,
         )

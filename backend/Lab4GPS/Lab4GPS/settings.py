@@ -191,4 +191,4 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'lab4gps@gmail.com')  # Replace with your email
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', 'tsji hgrs svst lupv')  # Replace with your app password
-DEFAULT_FROM_EMAIL = 'Lab4GPS <lab4gps@gmail.com>'
+DEFAULT_FROM_EMAIL = 'CS&V <sarahmueni5235@gmail.com>'

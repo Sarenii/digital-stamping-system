@@ -3,17 +3,25 @@ from .models import CustomUser
 from django.core.mail import send_mail
 import logging
 
-# Set up a logger
 logger = logging.getLogger(__name__)
 
 class RegisterSerializer(serializers.ModelSerializer):
     """
-    Serializer for registering a new user.
+    Serializer for registering a new user (Individual or Company only).
     """
     first_name = serializers.CharField(required=True, error_messages={"blank": "First name is required."})
     last_name = serializers.CharField(required=True, error_messages={"blank": "Last name is required."})
     email = serializers.EmailField(required=True, error_messages={"blank": "Email is required."})
-    role = serializers.ChoiceField(choices=CustomUser.Roles.choices, required=True, error_messages={"blank": "Role is required."})
+    
+    # Only Individual & Company can sign up
+    role = serializers.ChoiceField(
+        choices=[
+            (CustomUser.Roles.INDIVIDUAL, "Individual"),
+            (CustomUser.Roles.COMPANY, "Company"),
+        ],
+        required=True,
+        error_messages={"blank": "Role is required."}
+    )
 
     class Meta:
         model = CustomUser
@@ -23,35 +31,32 @@ class RegisterSerializer(serializers.ModelSerializer):
             'username': {'required': True, 'error_messages': {"blank": "Username is required."}},
         }
 
-    def validate_first_name(self, value):
-        if not value.strip():
-            raise serializers.ValidationError("First name cannot be empty or whitespace.")
-        return value
-
-    def validate_last_name(self, value):
-        if not value.strip():
-            raise serializers.ValidationError("Last name cannot be empty or whitespace.")
-        return value
-
     def validate_email(self, value):
         if CustomUser.objects.filter(email=value).exists():
             raise serializers.ValidationError("A user with this email already exists.")
+        return value
+
+    def validate_role(self, value):
+        """
+        Prevent users from selecting the ADMIN role during signup.
+        """
+        if value == CustomUser.Roles.ADMIN:
+            raise serializers.ValidationError("You cannot register as an admin.")
         return value
 
     def create(self, validated_data):
         try:
             # Create user and generate OTP
             user = CustomUser.objects.create_user(**validated_data)
-            user.generate_otp()  # Generate OTP for email verification
+            user.generate_otp()
 
-            # Log successful user creation
             logger.info(f"User {user.email} registered successfully with OTP {user.otp}.")
 
             # Send OTP to user's email
             send_mail(
-                'Your OTP for Lab4GPS',
+                'Your OTP for Chakan Stamp & Verify',
                 f'Your OTP is: {user.otp}',
-                'Lab4GPS <lab4gps@gmail.com>',
+                'CS&V <no-reply@chakanstamp.com>',
                 [user.email],
                 fail_silently=False,
             )
@@ -62,7 +67,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class VerifyOtpSerializer(serializers.Serializer):
     """
-    Serializer for verifying the OTP sent to the user's email.
+    Serializer for verifying OTP sent to the user's email.
     """
     email = serializers.EmailField()
     otp = serializers.CharField(max_length=6)
@@ -100,20 +105,11 @@ class LoginSerializer(serializers.Serializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     """
-    Serializer for retrieving and updating user profile details.
+    Serializer for retrieving user profile details.
     """
     class Meta:
         model = CustomUser
-        fields = (
-            'first_name',
-            'last_name',
-            'email',
-            'username',
-            'profile_picture',
-            'is_verified',
-            'registration_date',
-            'role',
-        )
+        fields = ('first_name', 'last_name', 'email', 'username', 'profile_picture', 'is_verified', 'registration_date', 'role')
         read_only_fields = ('is_verified', 'registration_date', 'profile_picture', 'role')
 
 class UpdateProfileSerializer(serializers.ModelSerializer):
@@ -122,15 +118,12 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
     """
     first_name = serializers.CharField(required=True)
     last_name = serializers.CharField(required=True)
+    email = serializers.EmailField(required=True)
+    username = serializers.CharField(required=False, allow_blank=True)
 
     class Meta:
         model = CustomUser
         fields = ('first_name', 'last_name', 'email', 'username')
-
-        # CHANGED: make username optional here so updates won't fail if omitted
-        extra_kwargs = {
-            'username': {'required': False, 'allow_blank': True},  # <-- ADDED
-        }
 
     def validate_first_name(self, value):
         if not value.strip():
@@ -143,12 +136,14 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         return value
 
     def update(self, instance, validated_data):
-        instance.update_profile(
-            first_name=validated_data.get('first_name'),
-            last_name=validated_data.get('last_name'),
-            email=validated_data.get('email'),
-            username=validated_data.get('username'),
-        )
+        """
+        Update user profile details.
+        """
+        instance.first_name = validated_data.get("first_name", instance.first_name)
+        instance.last_name = validated_data.get("last_name", instance.last_name)
+        instance.email = validated_data.get("email", instance.email)
+        instance.username = validated_data.get("username", instance.username)
+        instance.save()
         return instance
 
 class UpdateProfilePictureSerializer(serializers.ModelSerializer):
@@ -162,7 +157,8 @@ class UpdateProfilePictureSerializer(serializers.ModelSerializer):
         fields = ('profile_picture',)
 
     def update(self, instance, validated_data):
-        instance.update_profile_picture(validated_data.get('profile_picture'))
+        instance.profile_picture = validated_data.get('profile_picture')
+        instance.save()
         return instance
 
 class ChangePasswordSerializer(serializers.Serializer):
@@ -181,21 +177,17 @@ class ChangePasswordSerializer(serializers.Serializer):
         return data
 
     def save(self, **kwargs):
+        """
+        Change the user's password after validation.
+        """
         user = self.context['request'].user
         user.set_password(self.validated_data['new_password'])
         user.save()
         return user
 
-class TokenSerializer(serializers.Serializer):
-    """
-    Serializer for generating JWT tokens.
-    """
-    access = serializers.CharField(read_only=True)
-    refresh = serializers.CharField(read_only=True)
-
 class ForgotPasswordSerializer(serializers.Serializer):
     """
-    Serializer for initiating forgot password flow by sending OTP.
+    Serializer for initiating forgot password process by sending OTP.
     """
     email = serializers.EmailField()
 
@@ -204,21 +196,20 @@ class ForgotPasswordSerializer(serializers.Serializer):
             user = CustomUser.objects.get(email=data['email'])
             user.generate_reset_password_otp()
 
-            # Send OTP to user's email
             send_mail(
-                'Reset Your Password - Lab4GPS',
+                'Reset Your Password - CS&V',
                 f'Your OTP is: {user.reset_password_otp}',
-                'Lab4GPS <lab4gps@gmail.com>',
+                'CS&V <sarahmueni5235@gmail.com>',
                 [user.email],
                 fail_silently=False,
             )
-            return user
+            return data
         except CustomUser.DoesNotExist:
             raise serializers.ValidationError("User with this email does not exist.")
 
 class VerifyResetOtpSerializer(serializers.Serializer):
     """
-    Serializer for verifying the OTP sent for password reset.
+    Serializer for verifying OTP sent for password reset.
     """
     email = serializers.EmailField()
     otp = serializers.CharField(max_length=6)
@@ -231,7 +222,7 @@ class VerifyResetOtpSerializer(serializers.Serializer):
             if user.reset_password_otp != data['otp']:
                 raise serializers.ValidationError("Invalid OTP.")
             user.clear_reset_password_otp()
-            return user
+            return data
         except CustomUser.DoesNotExist:
             raise serializers.ValidationError("User not found.")
 
@@ -247,6 +238,6 @@ class ResetPasswordSerializer(serializers.Serializer):
             user = CustomUser.objects.get(email=data['email'])
             user.set_password(data['new_password'])
             user.save()
-            return user
+            return data
         except CustomUser.DoesNotExist:
             raise serializers.ValidationError("User not found.")
