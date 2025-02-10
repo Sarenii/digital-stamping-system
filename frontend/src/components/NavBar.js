@@ -10,6 +10,7 @@ const NavBar = () => {
         <Link to="/creator" className="hover:text-lightgray transition">Create Stamp</Link>
         <Link to="/manage-stamps" className="hover:text-lightgray transition">Manage Stamps</Link>
         <Link to="/documents" className="hover:text-lightgray transition">Documents</Link>
+        <Link to="/document-verification" className="hover:text-lightgray transition">Document Verification</Link>
       </div>
     </nav>
   );

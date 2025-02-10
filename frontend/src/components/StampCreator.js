@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import axios from "axios";
 import { useAuth } from "../Context/AuthContext";
 import NavBar from "./NavBar";
+import StampVerificationModal from "./StampVerificationModal"; // Dedicated modal for stamp creation verification
 
 const StampCreator = ({ createStamp }) => {
   const [shape, setShape] = useState("Circle");
@@ -14,15 +15,15 @@ const StampCreator = ({ createStamp }) => {
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
+  // For individual users: track if they've been verified for stamp creation
+  const [stampVerified, setStampVerified] = useState(false);
+  const [showStampVerificationModal, setShowStampVerificationModal] = useState(false);
+
   const { user } = useAuth();
   const token = user?.accessToken || localStorage.getItem("accessToken");
 
-  const handleCreateStamp = async () => {
-    if (!token) {
-      setErrorMessage("No token found! Please log in.");
-      return;
-    }
-
+  // Call backend to create the stamp
+  const proceedStampCreation = async () => {
     const stampData = {
       shape,
       shape_color: shapeColor,
@@ -38,9 +39,7 @@ const StampCreator = ({ createStamp }) => {
         "http://localhost:8000/stamps/stamps/",
         stampData,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
       setSuccessMessage("Stamp created successfully!");
@@ -53,6 +52,30 @@ const StampCreator = ({ createStamp }) => {
     }
   };
 
+  // When clicking "Create Stamp", if individual and not verified, request OTP then show modal.
+  const handleCreateStamp = async () => {
+    if (!token) {
+      setErrorMessage("No token found! Please log in.");
+      return;
+    }
+    if (user?.role === "INDIVIDUAL" && !stampVerified) {
+      try {
+        // Request OTP for stamp verification for individual users.
+        await axios.post(
+          "http://localhost:8000/auth/request-stamp-otp",
+          null,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } catch (err) {
+        console.error("Failed to send stamp OTP for individual:", err);
+      }
+      setShowStampVerificationModal(true);
+      return;
+    }
+    // For companies or already verified individuals, create the stamp immediately.
+    await proceedStampCreation();
+  };
+
   return (
     <>
       <NavBar />
@@ -60,11 +83,14 @@ const StampCreator = ({ createStamp }) => {
         <h2 className="text-lg font-bold mb-6">Create Your Stamp</h2>
 
         {successMessage && (
-          <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">{successMessage}</div>
+          <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">
+            {successMessage}
+          </div>
         )}
-
         {errorMessage && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{errorMessage}</div>
+          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
+            {errorMessage}
+          </div>
         )}
 
         <div className="mb-4">
@@ -80,7 +106,7 @@ const StampCreator = ({ createStamp }) => {
           </select>
         </div>
 
-        {/* Shape Color Selection */}
+        {/* Shape Color */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Shape Color</label>
           <input
@@ -89,17 +115,13 @@ const StampCreator = ({ createStamp }) => {
             value={shapeColor}
             onChange={(e) => setShapeColor(e.target.value)}
           />
-          {/* Preview line that updates to the selected shape color */}
           <hr
             className="mt-2"
-            style={{
-              borderColor: shapeColor,
-              borderWidth: "2px",
-            }}
+            style={{ borderColor: shapeColor, borderWidth: "2px" }}
           />
         </div>
 
-        {/* Text Color Selection */}
+        {/* Text Color */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Text Color</label>
           <input
@@ -108,17 +130,13 @@ const StampCreator = ({ createStamp }) => {
             value={textColor}
             onChange={(e) => setTextColor(e.target.value)}
           />
-          {/* Preview line that updates to the selected text color */}
           <hr
             className="mt-2"
-            style={{
-              borderColor: textColor,
-              borderWidth: "2px",
-            }}
+            style={{ borderColor: textColor, borderWidth: "2px" }}
           />
         </div>
 
-        {/* Date Color Selection */}
+        {/* Date Color */}
         <div className="mb-4">
           <label className="block text-sm font-medium mb-2">Date Color</label>
           <input
@@ -127,13 +145,9 @@ const StampCreator = ({ createStamp }) => {
             value={dateColor}
             onChange={(e) => setDateColor(e.target.value)}
           />
-          {/* Preview line that updates to the selected date color */}
           <hr
             className="mt-2"
-            style={{
-              borderColor: dateColor,
-              borderWidth: "2px",
-            }}
+            style={{ borderColor: dateColor, borderWidth: "2px" }}
           />
         </div>
 
@@ -148,9 +162,11 @@ const StampCreator = ({ createStamp }) => {
           />
         </div>
 
-        {/* Top Text Field */}
+        {/* Top Text */}
         <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Top Text (Required)</label>
+          <label className="block text-sm font-medium mb-2">
+            Top Text (Required)
+          </label>
           <input
             type="text"
             className="w-full p-2 border rounded"
@@ -161,9 +177,11 @@ const StampCreator = ({ createStamp }) => {
           />
         </div>
 
-        {/* Bottom Text Field */}
+        {/* Bottom Text */}
         <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">Bottom Text (Optional)</label>
+          <label className="block text-sm font-medium mb-2">
+            Bottom Text (Optional)
+          </label>
           <input
             type="text"
             className="w-full p-2 border rounded"
@@ -174,12 +192,22 @@ const StampCreator = ({ createStamp }) => {
         </div>
 
         <button
-          className="w-full bg-primary text-white py-2 rounded hover:bg-accent hover:text-primary transition"
+          className="w-full bg-primary text-white py-2 rounded hover:bg-accent transition"
           onClick={handleCreateStamp}
         >
           Create Stamp
         </button>
       </div>
+
+      {/* Dedicated Stamp Verification Modal for individual users */}
+      <StampVerificationModal
+        isOpen={showStampVerificationModal}
+        onClose={() => setShowStampVerificationModal(false)}
+        onVerify={() => {
+          setStampVerified(true);
+          proceedStampCreation();
+        }}
+      />
     </>
   );
 };

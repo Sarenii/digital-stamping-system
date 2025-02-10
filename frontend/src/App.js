@@ -1,4 +1,3 @@
-// src/App.js
 import React, { useState } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./Context/AuthContext"; // Import AuthProvider
@@ -10,6 +9,8 @@ import CanvasWithSidebar from "./components/CanvasWithSidebar"; // Corrected imp
 import StampCreator from "./components/StampCreator"; // This is where the StampCreator will be displayed
 import Documents from "./components/Documents"; // Import the Documents component
 import ManageStamps from "./components/StampManager";
+import DocumentVerification from './components/DocumentVerification';
+
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
@@ -34,6 +35,7 @@ const App = () => {
           <Route path="/creator" element={<StampCreator createStamp={createStamp} />} />
           <Route path="/manage-stamps" element={<ManageStamps/>} />
           <Route path="/documents" element={<Documents />} /> {/* Add the Documents route */}
+          <Route path="/document-verification" element={<DocumentVerification />} /> {/* Corrected route */}
         </Routes>
       </Router>
     </AuthProvider>
