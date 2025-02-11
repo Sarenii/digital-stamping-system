@@ -2,13 +2,12 @@ from rest_framework import serializers
 from .models import CustomUser
 from django.core.mail import send_mail
 import logging
+from django.utils import timezone
+from datetime import timedelta
 
 logger = logging.getLogger(__name__)
 
 class RegisterSerializer(serializers.ModelSerializer):
-    """
-    Serializer for registering a new user (Individual or Company only).
-    """
     first_name = serializers.CharField(required=True, error_messages={"blank": "First name is required."})
     last_name = serializers.CharField(required=True, error_messages={"blank": "Last name is required."})
     email = serializers.EmailField(required=True, error_messages={"blank": "Email is required."})
@@ -37,22 +36,17 @@ class RegisterSerializer(serializers.ModelSerializer):
         return value
 
     def validate_role(self, value):
-        """
-        Prevent users from selecting the ADMIN role during signup.
-        """
         if value == CustomUser.Roles.ADMIN:
             raise serializers.ValidationError("You cannot register as an admin.")
         return value
 
     def create(self, validated_data):
         try:
-            # Create user and generate OTP
             user = CustomUser.objects.create_user(**validated_data)
             user.generate_otp()
 
             logger.info(f"User {user.email} registered successfully with OTP {user.otp}.")
 
-            # Send OTP to user's email
             send_mail(
                 'Your OTP for Chakan Stamp & Verify',
                 f'Your OTP is: {user.otp}',
@@ -66,11 +60,9 @@ class RegisterSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("An error occurred during registration. Please try again.")
 
 class VerifyOtpSerializer(serializers.Serializer):
-    """
-    Serializer for verifying OTP sent to the user's email.
-    """
     email = serializers.EmailField()
     otp = serializers.CharField(max_length=6)
+    for_stamping = serializers.BooleanField(required=False, default=False)
 
     def validate(self, data):
         try:
@@ -79,16 +71,19 @@ class VerifyOtpSerializer(serializers.Serializer):
                 raise serializers.ValidationError("OTP has expired.")
             if user.otp != data['otp']:
                 raise serializers.ValidationError("Invalid OTP.")
-            user.is_verified = True
+            if data.get("for_stamping", False):
+                # For stamping verification, set stamp_verified flag.
+                if user.role == CustomUser.Roles.INDIVIDUAL:
+                    user.stamp_verified = True
+            else:
+                user.is_verified = True
             user.clear_otp()
+            user.save()
             return user
         except CustomUser.DoesNotExist:
             raise serializers.ValidationError("User not found.")
 
 class LoginSerializer(serializers.Serializer):
-    """
-    Serializer for logging in a user.
-    """
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
 
@@ -104,18 +99,12 @@ class LoginSerializer(serializers.Serializer):
             raise serializers.ValidationError("User not found.")
 
 class UserProfileSerializer(serializers.ModelSerializer):
-    """
-    Serializer for retrieving user profile details.
-    """
     class Meta:
         model = CustomUser
         fields = ('first_name', 'last_name', 'email', 'username', 'profile_picture', 'is_verified', 'registration_date', 'role')
         read_only_fields = ('is_verified', 'registration_date', 'profile_picture', 'role')
 
 class UpdateProfileSerializer(serializers.ModelSerializer):
-    """
-    Serializer for updating user details (excluding password and profile picture).
-    """
     first_name = serializers.CharField(required=True)
     last_name = serializers.CharField(required=True)
     email = serializers.EmailField(required=True)
@@ -136,9 +125,6 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         return value
 
     def update(self, instance, validated_data):
-        """
-        Update user profile details.
-        """
         instance.first_name = validated_data.get("first_name", instance.first_name)
         instance.last_name = validated_data.get("last_name", instance.last_name)
         instance.email = validated_data.get("email", instance.email)
@@ -147,9 +133,6 @@ class UpdateProfileSerializer(serializers.ModelSerializer):
         return instance
 
 class UpdateProfilePictureSerializer(serializers.ModelSerializer):
-    """
-    Serializer for updating the user's profile picture.
-    """
     profile_picture = serializers.ImageField()
 
     class Meta:
@@ -162,9 +145,6 @@ class UpdateProfilePictureSerializer(serializers.ModelSerializer):
         return instance
 
 class ChangePasswordSerializer(serializers.Serializer):
-    """
-    Serializer for changing the user's password.
-    """
     old_password = serializers.CharField(write_only=True)
     new_password = serializers.CharField(write_only=True)
 
@@ -177,25 +157,18 @@ class ChangePasswordSerializer(serializers.Serializer):
         return data
 
     def save(self, **kwargs):
-        """
-        Change the user's password after validation.
-        """
         user = self.context['request'].user
         user.set_password(self.validated_data['new_password'])
         user.save()
         return user
 
 class ForgotPasswordSerializer(serializers.Serializer):
-    """
-    Serializer for initiating forgot password process by sending OTP.
-    """
     email = serializers.EmailField()
 
     def validate(self, data):
         try:
             user = CustomUser.objects.get(email=data['email'])
             user.generate_reset_password_otp()
-
             send_mail(
                 'Reset Your Password - CS&V',
                 f'Your OTP is: {user.reset_password_otp}',
@@ -208,9 +181,6 @@ class ForgotPasswordSerializer(serializers.Serializer):
             raise serializers.ValidationError("User with this email does not exist.")
 
 class VerifyResetOtpSerializer(serializers.Serializer):
-    """
-    Serializer for verifying OTP sent for password reset.
-    """
     email = serializers.EmailField()
     otp = serializers.CharField(max_length=6)
 
@@ -227,9 +197,6 @@ class VerifyResetOtpSerializer(serializers.Serializer):
             raise serializers.ValidationError("User not found.")
 
 class ResetPasswordSerializer(serializers.Serializer):
-    """
-    Serializer for resetting the user's password.
-    """
     email = serializers.EmailField()
     new_password = serializers.CharField(write_only=True)
 

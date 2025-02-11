@@ -9,4 +9,4 @@ class StampSerializer(serializers.ModelSerializer):
 class DocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = Document
-        exclude = ['user']
+        exclude = ['user']  

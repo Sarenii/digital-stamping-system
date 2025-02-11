@@ -1,10 +1,8 @@
 // src/services/api.js
 import axios from "axios";
 
-// Base URL for the backend
 const BASE_URL = "http://127.0.0.1:8000/"; // Backend base URL
 
-// Create an Axios instance with default configurations
 const api = axios.create({
   baseURL: BASE_URL,
   headers: {
@@ -12,7 +10,6 @@ const api = axios.create({
   },
 });
 
-// Interceptor to attach Authorization headers for requests
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("accessToken");
@@ -24,13 +21,10 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Interceptor for handling token expiration and refreshing tokens
 api.interceptors.response.use(
-  (response) => response, // Pass through successful responses
+  (response) => response,
   async (error) => {
     const originalRequest = error.config;
-
-    // Handle 401 errors (unauthorized) and refresh token
     if (
       error.response &&
       error.response.status === 401 &&
@@ -39,16 +33,10 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       try {
         const refreshToken = localStorage.getItem("refreshToken");
-        if (!refreshToken) {
-          throw new Error("Refresh token not found");
-        }
-
-        // Call the refresh token endpoint
-        const { data } = await axios.post(`${BASE_URL}/auth/token/refresh/`, {
+        if (!refreshToken) throw new Error("Refresh token not found");
+        const { data } = await axios.post(`${BASE_URL}auth/token/refresh/`, {
           refresh: refreshToken,
         });
-
-        // Save the new access token and retry the failed request
         localStorage.setItem("accessToken", data.access);
         originalRequest.headers.Authorization = `Bearer ${data.access}`;
         return api(originalRequest);
@@ -56,13 +44,73 @@ api.interceptors.response.use(
         console.error("Token refresh failed:", refreshError);
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
-        window.location.href = "/login"; // Redirect to login
+        window.location.href = "/login";
         return Promise.reject(refreshError);
       }
     }
-
-    return Promise.reject(error); // Pass other errors to the next handler
+    return Promise.reject(error);
   }
 );
+
+export const registerUser = async (formData) => {
+  return await api.post("auth/signup/", formData);
+};
+
+export const verifyOtp = async (email, otp, forStamping = false) => {
+  return await api.post("auth/verify-otp/", { email, otp, for_stamping: forStamping });
+};
+
+export const loginUser = async (email, password) => {
+  const response = await api.post("auth/login/", { email, password });
+  localStorage.setItem("accessToken", response.data.access);
+  localStorage.setItem("refreshToken", response.data.refresh);
+  return response.data;
+};
+
+export const refreshToken = async () => {
+  const refreshToken = localStorage.getItem("refreshToken");
+  if (!refreshToken) throw new Error("Refresh token missing");
+  const response = await api.post("auth/token/refresh/", { refresh: refreshToken });
+  localStorage.setItem("accessToken", response.data.access);
+  return response.data;
+};
+
+export const getUserProfile = async () => {
+  return await api.get("auth/profile/");
+};
+
+export const updateUserProfile = async (profileData) => {
+  return await api.put("auth/profile/update/", profileData);
+};
+
+export const updateUserProfilePicture = async (profilePicture) => {
+  const formData = new FormData();
+  formData.append("profile_picture", profilePicture);
+  return await api.put("auth/profile/update-picture/", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};
+
+export const changeUserPassword = async (passwordData) => {
+  return await api.post("auth/profile/change-password/", passwordData);
+};
+
+export const forgotPassword = async (email) => {
+  return await api.post("auth/forgot-password/", { email });
+};
+
+export const verifyResetOtp = async (email, otp) => {
+  return await api.post("auth/verify-reset-otp/", { email, otp });
+};
+
+export const resetPassword = async (email, newPassword) => {
+  return await api.post("auth/reset-password/", { email, new_password: newPassword });
+};
+
+export const logoutUser = () => {
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
+  window.location.href = "/login";
+};
 
 export default api;

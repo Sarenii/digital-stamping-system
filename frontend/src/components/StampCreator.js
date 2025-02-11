@@ -1,8 +1,9 @@
+// src/components/StampCreator.js
 import React, { useState } from "react";
 import axios from "axios";
 import { useAuth } from "../Context/AuthContext";
 import NavBar from "./NavBar";
-import StampVerificationModal from "./StampVerificationModal"; // Dedicated modal for stamp creation verification
+import StampVerificationModal from "./StampVerificationModal";
 
 const StampCreator = ({ createStamp }) => {
   const [shape, setShape] = useState("Circle");
@@ -15,14 +16,13 @@ const StampCreator = ({ createStamp }) => {
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  // For individual users: track if they've been verified for stamp creation
+  // For individual users: stampVerified means "first-time stamping OTP" is done
   const [stampVerified, setStampVerified] = useState(false);
   const [showStampVerificationModal, setShowStampVerificationModal] = useState(false);
 
   const { user } = useAuth();
   const token = user?.accessToken || localStorage.getItem("accessToken");
 
-  // Call backend to create the stamp
   const proceedStampCreation = async () => {
     const stampData = {
       shape,
@@ -38,9 +38,7 @@ const StampCreator = ({ createStamp }) => {
       const response = await axios.post(
         "http://localhost:8000/stamps/stamps/",
         stampData,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+        { headers: { Authorization: `Bearer ${token}` } }
       );
       setSuccessMessage("Stamp created successfully!");
       setErrorMessage("");
@@ -52,17 +50,17 @@ const StampCreator = ({ createStamp }) => {
     }
   };
 
-  // When clicking "Create Stamp", if individual and not verified, request OTP then show modal.
   const handleCreateStamp = async () => {
     if (!token) {
       setErrorMessage("No token found! Please log in.");
       return;
     }
+    // For individuals: only request OTP once if not yet verified for stamping
     if (user?.role === "INDIVIDUAL" && !stampVerified) {
       try {
-        // Request OTP for stamp verification for individual users.
+        // Request an OTP
         await axios.post(
-          "http://localhost:8000/auth/request-stamp-otp",
+          "http://localhost:8000/auth/request-otp",
           null,
           { headers: { Authorization: `Bearer ${token}` } }
         );
@@ -72,7 +70,7 @@ const StampCreator = ({ createStamp }) => {
       setShowStampVerificationModal(true);
       return;
     }
-    // For companies or already verified individuals, create the stamp immediately.
+    // If user is a company or stampVerified is true, create stamp directly
     await proceedStampCreation();
   };
 
@@ -115,10 +113,7 @@ const StampCreator = ({ createStamp }) => {
             value={shapeColor}
             onChange={(e) => setShapeColor(e.target.value)}
           />
-          <hr
-            className="mt-2"
-            style={{ borderColor: shapeColor, borderWidth: "2px" }}
-          />
+          <hr className="mt-2" style={{ borderColor: shapeColor, borderWidth: "2px" }} />
         </div>
 
         {/* Text Color */}
@@ -130,10 +125,7 @@ const StampCreator = ({ createStamp }) => {
             value={textColor}
             onChange={(e) => setTextColor(e.target.value)}
           />
-          <hr
-            className="mt-2"
-            style={{ borderColor: textColor, borderWidth: "2px" }}
-          />
+          <hr className="mt-2" style={{ borderColor: textColor, borderWidth: "2px" }} />
         </div>
 
         {/* Date Color */}
@@ -145,10 +137,7 @@ const StampCreator = ({ createStamp }) => {
             value={dateColor}
             onChange={(e) => setDateColor(e.target.value)}
           />
-          <hr
-            className="mt-2"
-            style={{ borderColor: dateColor, borderWidth: "2px" }}
-          />
+          <hr className="mt-2" style={{ borderColor: dateColor, borderWidth: "2px" }} />
         </div>
 
         {/* Date Field */}
@@ -164,9 +153,7 @@ const StampCreator = ({ createStamp }) => {
 
         {/* Top Text */}
         <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">
-            Top Text (Required)
-          </label>
+          <label className="block text-sm font-medium mb-2">Top Text (Required)</label>
           <input
             type="text"
             className="w-full p-2 border rounded"
@@ -179,9 +166,7 @@ const StampCreator = ({ createStamp }) => {
 
         {/* Bottom Text */}
         <div className="mb-4">
-          <label className="block text-sm font-medium mb-2">
-            Bottom Text (Optional)
-          </label>
+          <label className="block text-sm font-medium mb-2">Bottom Text (Optional)</label>
           <input
             type="text"
             className="w-full p-2 border rounded"
@@ -199,14 +184,18 @@ const StampCreator = ({ createStamp }) => {
         </button>
       </div>
 
-      {/* Dedicated Stamp Verification Modal for individual users */}
+      {/* OTP Modal for first-time stamping (only for individuals) */}
       <StampVerificationModal
         isOpen={showStampVerificationModal}
         onClose={() => setShowStampVerificationModal(false)}
         onVerify={() => {
-          setStampVerified(true);
+          // Once verified for stamping, set local stampVerified
+          if (user?.role === "INDIVIDUAL") {
+            setStampVerified(true);
+          }
           proceedStampCreation();
         }}
+        forStamping={false}
       />
     </>
   );

@@ -79,3 +79,4 @@ export const generateQR = async (documentId, token) => {
   return response.json();
 };
 // Additional functions like deleteDocument, renameDocument, etc., can be added here
+

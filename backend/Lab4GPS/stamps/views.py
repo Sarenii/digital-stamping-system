@@ -1,15 +1,16 @@
+# views.py
 from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from .models import Stamp, Document
 from .serializers import StampSerializer, DocumentSerializer
+from django.utils.crypto import get_random_string
 import json
-import pytesseract
-from PIL import Image
 import qrcode
 import base64
 from io import BytesIO
+from PIL import Image
 
 class StampViewSet(viewsets.ModelViewSet):
     serializer_class = StampSerializer
@@ -22,7 +23,6 @@ class StampViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
-
 class DocumentViewSet(viewsets.ModelViewSet):
     serializer_class = DocumentSerializer
     queryset = Document.objects.all()
@@ -31,65 +31,25 @@ class DocumentViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return self.queryset.filter(user=self.request.user)
 
+    # On create => just store the raw file, stamped=False
     def perform_create(self, serializer):
-        metadata = {"uploaded_by": self.request.user.username}
-        serializer.save(user=self.request.user, metadata=metadata)
+        serializer.save(user=self.request.user, stamped=False)
 
-    @action(detail=True, methods=["post"])
-    def generate_qr(self, request, pk=None):
-        """Generates a QR code with document serial number and user info."""
-        document = self.get_object()
+    # On update => store the final stamped PDF, set stamped=True
+    def update(self, request, *args, **kwargs):
+        instance = self.get_object()
 
-        data_to_encode = json.dumps({
-            "document_id": document.id,
-            "serial_number": document.serial_number,
-            "user": document.user.username
-        })
+        # If there's a 'file' in request.FILES, that means we are updating it with the final stamped PDF.
+        new_file = request.FILES.get("file", None)
+        if new_file:
+            instance.file = new_file
 
-        qr = qrcode.QRCode(version=1, box_size=5, border=2)
-        qr.add_data(data_to_encode)
-        qr.make(fit=True)
+        instance.stamped = True
+        if not instance.serial_number:
+            instance.serial_number = get_random_string(length=8).upper()
 
-        img = qr.make_image(fill_color="black", back_color="white")
-
-        buffer = BytesIO()
-        img.save(buffer, format="PNG")
-        qr_base64 = base64.b64encode(buffer.getvalue()).decode("utf-8")
-
-        document.qr_data = qr_base64
-        document.save()
-
-        return Response({"qr_base64": qr_base64}, status=status.HTTP_200_OK)
-
-    @action(detail=True, methods=["post"])
-    def verify_document(self, request, pk=None):
-        """Verifies the document by checking the QR code and serial number."""
-        document = self.get_object()
-
-        # Step 1: Check if document has QR code
-        if not document.qr_data:
-            return Response({"error": "Document does not have a QR code"}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Step 2: Decode QR code from document file (for scanning/uploading documents)
-        uploaded_file = request.FILES.get('file')
-        if not uploaded_file:
-            return Response({"error": "No file provided for verification"}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Decode QR from uploaded file (assuming the uploaded file is a QR code image)
-        qr_data_from_file = self.decode_qr_from_file(uploaded_file)
-
-        if qr_data_from_file is None:
-            return Response({"error": "QR code not found in the document"}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Step 3: Verify the QR code and serial number match
-        if qr_data_from_file == document.qr_data:
-            return Response({"status": "valid", "message": "Document verified successfully"})
-        else:
-            return Response({"status": "invalid", "message": "QR code or serial number mismatch"})
-
-    def decode_qr_from_file(self, file):
-        """Decodes QR code from the uploaded file (image)."""
-        img = Image.open(file)
-        qr = qrcode.QRCode()
-        qr.add_data(img)
-        return qr.data if qr.data else None
+        # Regenerate the QR code
+        instance.generate_qr_code()
+        instance.save()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data, status=status.HTTP_200_OK)

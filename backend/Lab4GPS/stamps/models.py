@@ -43,7 +43,6 @@ class Document(models.Model):
     metadata = models.JSONField(default=dict)
     stamped = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
-    timestamp = models.DateTimeField(auto_now_add=True)
     version = models.CharField(max_length=100, default="1.0")
 
     serial_number = models.CharField(
@@ -62,17 +61,8 @@ class Document(models.Model):
     def __str__(self):
         return f"Document by {self.user.username}"
 
-    def save(self, *args, **kwargs):
-        if not self.serial_number:
-            self.serial_number = get_random_string(length=8).upper()
-
-        if not self.qr_data:
-            self.generate_qr_code()
-        
-        super().save(*args, **kwargs)
-
     def generate_qr_code(self):
-        """Generate and store QR code as a base64 string."""
+        """Generate a QR code with serial_number, user info, etc."""
         data_to_encode = {
             "document_id": self.id,
             "serial_number": self.serial_number,
@@ -81,9 +71,7 @@ class Document(models.Model):
         qr = qrcode.QRCode(version=1, box_size=5, border=2)
         qr.add_data(str(data_to_encode))
         qr.make(fit=True)
-
         img = qr.make_image(fill_color="black", back_color="white")
-
         buffer = BytesIO()
         img.save(buffer, format="PNG")
         self.qr_data = base64.b64encode(buffer.getvalue()).decode("utf-8")

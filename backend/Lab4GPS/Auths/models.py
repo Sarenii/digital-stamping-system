@@ -1,3 +1,4 @@
+# models.py
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils import timezone
@@ -13,6 +14,9 @@ class CustomUser(AbstractUser):
     email = models.EmailField(unique=True, verbose_name="Email Address")
     is_verified = models.BooleanField(default=False, verbose_name="Is Verified")
     is_company_verified = models.BooleanField(default=False, verbose_name="Is Company Verified")
+    
+    # New field for stamping verification
+    stamp_verified = models.BooleanField(default=False, verbose_name="Stamp Verified")
 
     otp = models.CharField(max_length=6, blank=True, null=True, verbose_name="One-Time Password (OTP)")
     otp_created_at = models.DateTimeField(blank=True, null=True)
@@ -32,7 +36,7 @@ class CustomUser(AbstractUser):
 
     # OTP Methods
     def generate_otp(self):
-        """Generate a random 6-digit OTP for email verification."""
+        """Generate a random 6-digit OTP for email or stamping verification."""
         self.otp = str(random.randint(100000, 999999))
         self.otp_created_at = timezone.now()
         self.save()
@@ -48,5 +52,3 @@ class CustomUser(AbstractUser):
         if self.otp_created_at:
             return timezone.now() > (self.otp_created_at + timedelta(minutes=10))
         return True
-
-    

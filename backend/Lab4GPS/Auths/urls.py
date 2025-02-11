@@ -11,6 +11,7 @@ from .views import (
     ForgotPasswordView,
     VerifyResetOtpView,
     ResetPasswordView,
+    RequestOtpView,
 )
 
 urlpatterns = [
@@ -46,4 +47,7 @@ urlpatterns = [
 
     # Endpoint for resetting the password
     path('reset-password/', ResetPasswordView.as_view(), name='reset_password'),
+
+    # Endpoint for requesting otp
+    path('request-otp/', RequestOtpView.as_view(), name='request_otp'),
 ]

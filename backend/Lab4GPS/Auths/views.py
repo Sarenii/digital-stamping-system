@@ -1,5 +1,6 @@
 from rest_framework import generics, status
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -15,6 +16,7 @@ from .serializers import (
     ForgotPasswordSerializer,
     VerifyResetOtpSerializer,
     ResetPasswordSerializer,
+
 )
 
 class RegisterView(generics.CreateAPIView):
@@ -183,3 +185,19 @@ class ResetPasswordView(generics.GenericAPIView):
             {"message": "Password reset successfully. You can now log in."},
             status=status.HTTP_200_OK,
         )
+class RequestOtpView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        # Generate new OTP and save user.
+        user.generate_otp()
+        # Send OTP email to the user.
+        send_mail(
+            'Your OTP for Chakan Stamp & Verify',
+            f'Your OTP is: {user.otp}',
+            'CS&V <no-reply@chakanstamp.com>',
+            [user.email],
+            fail_silently=False,
+        )
+        return Response({"message": "OTP sent successfully."}, status=status.HTTP_200_OK)
