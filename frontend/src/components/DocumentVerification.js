@@ -1,226 +1,272 @@
-import React, { useState, useRef, useEffect } from 'react';
-import axios from 'axios';
-import { useAuth } from '../Context/AuthContext';
-import NavBar from './NavBar';
-import * as pdfjsLib from 'pdfjs-dist';
+// src/components/DocumentVerification.js
+
+import React, { useState, useRef, useEffect } from "react";
+import axios from "axios";
+import { useAuth } from "../Context/AuthContext";
+import NavBar from "./NavBar";
+import * as pdfjsLib from "pdfjs-dist";
+import pdfjsWorker from "pdfjs-dist/legacy/build/pdf.worker.min.js";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
 const DocumentVerification = () => {
-  const [document, setDocument] = useState(null);
+  const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
-  const [verificationStatus, setVerificationStatus] = useState(null);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [isVerified, setIsVerified] = useState(false);
-  const [isPdf, setIsPdf] = useState(false);  // Track if the document is a PDF
+  const [isPdf, setIsPdf] = useState(false);
 
-  const { user } = useAuth();
-  const token = user?.accessToken || localStorage.getItem('accessToken');
+  // For success/error modal
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMessage, setModalMessage] = useState("");
+  const [modalIsError, setModalIsError] = useState(false);
 
+  // Webcam Refs
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
 
-  // Handle file upload
-  const handleFileUpload = (e) => {
+  const { user } = useAuth();
+  const token = user?.accessToken || localStorage.getItem("accessToken");
+
+  // Start the webcam automatically if needed
+  useEffect(() => {
+    if (videoRef.current && !videoRef.current.srcObject) {
+      startWebcam();
+    }
+  }, []);
+
+  // -------------- File Upload --------------
+  const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      setDocument(file);
-      setIsPdf(file.type === 'application/pdf');
-      setPreviewUrl(URL.createObjectURL(file)); // Show preview of uploaded file
-      if (file.type === 'application/pdf') {
-        previewPdf(file);  // Preview the PDF
-      }
+    setSelectedFile(file);
+    if (!file) return;
+
+    // If it's PDF, show first-page preview
+    if (file.type === "application/pdf") {
+      setIsPdf(true);
+      createPdfPreview(file);
+    } else {
+      setIsPdf(false);
+      setPreviewUrl(URL.createObjectURL(file));
     }
   };
 
-  // Preview PDF file (render the first page)
-  const previewPdf = (file) => {
-    const fileReader = new FileReader();
-    fileReader.onload = (e) => {
+  const createPdfPreview = (file) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
       const pdfData = new Uint8Array(e.target.result);
-      pdfjsLib.getDocument(pdfData).promise.then((pdf) => {
-        pdf.getPage(1).then((page) => {
-          const canvas = document.createElement('canvas');
-          const context = canvas.getContext('2d');
-          const viewport = page.getViewport({ scale: 1.5 });
-          canvas.height = viewport.height;
-          canvas.width = viewport.width;
-          page.render({ canvasContext: context, viewport: viewport }).promise.then(() => {
-            setPreviewUrl(canvas.toDataURL());  // Set the preview URL
-          });
-        });
-      });
+      const pdfDoc = await pdfjsLib.getDocument(pdfData).promise;
+      const page = await pdfDoc.getPage(1);
+      const scale = 1.0;
+      const viewport = page.getViewport({ scale });
+      const canvasEl = document.createElement("canvas");
+      const ctx = canvasEl.getContext("2d");
+
+      canvasEl.height = viewport.height;
+      canvasEl.width = viewport.width;
+      await page.render({ canvasContext: ctx, viewport }).promise;
+      setPreviewUrl(canvasEl.toDataURL());
     };
-    fileReader.readAsArrayBuffer(file);
+    reader.readAsArrayBuffer(file);
   };
 
-  // Start webcam for scanning
+  // -------------- Webcam Logic --------------
   const startWebcam = () => {
-    if (videoRef.current) {
-      navigator.mediaDevices
-        .getUserMedia({ video: { facingMode: 'environment' } })
-        .then((stream) => {
-          videoRef.current.srcObject = stream;
-        })
-        .catch((err) => {
-          console.error('Error accessing webcam:', err);
-          setErrorMessage('Unable to access webcam.');
-        });
-    }
-  };
-
-  // Capture image from webcam
-  const captureImage = () => {
-    if (canvasRef.current && videoRef.current) {
-      const context = canvasRef.current.getContext('2d');
-      context.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
-      const imageData = canvasRef.current.toDataURL('image/jpeg');
-      handleVerifyDocument(imageData);  // Use handleVerifyDocument here to verify the scanned image
-    }
-  };
-
-  // Handle document verification for both uploaded file and scanned image
-  const handleVerifyDocument = async (imageData = null) => {
-    if (!document && !imageData) {
-      setErrorMessage('Please upload or scan a document first.');
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      console.log("No webcam support");
       return;
     }
+    navigator.mediaDevices
+      .getUserMedia({ video: { facingMode: "environment" } })
+      .then((stream) => {
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      })
+      .catch((err) => {
+        console.error("Error accessing webcam:", err);
+      });
+  };
+
+  const captureImageFromWebcam = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+    canvasRef.current.width = videoRef.current.videoWidth;
+    canvasRef.current.height = videoRef.current.videoHeight;
+    const ctx = canvasRef.current.getContext("2d");
+    ctx.drawImage(videoRef.current, 0, 0);
+    const dataUrl = canvasRef.current.toDataURL("image/png");
+    verifyDocument(dataUrl);
+  };
+
+  // Convert dataURL to a blob
+  const dataURLToBlob = (dataUrl) => {
+    const arr = dataUrl.split(",");
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+  };
+
+  // -------------- Verification --------------
+  const verifyDocument = async (imageDataUrl = null) => {
     if (!token) {
-      setErrorMessage('You must be logged in to verify documents.');
+      openModal("You must be logged in to verify documents.", true);
       return;
     }
 
     const formData = new FormData();
-    if (document) {
-      formData.append('file', document);
-    } else if (imageData) {
-      const byteArray = dataURItoBlob(imageData);
-      formData.append('file', byteArray);
+    if (imageDataUrl) {
+      // We have an image from webcam
+      const blob = dataURLToBlob(imageDataUrl);
+      formData.append("file", blob, "scanned.png");
+    } else if (selectedFile) {
+      // We have a user-uploaded file
+      formData.append("file", selectedFile);
+    } else {
+      openModal("No file or scanned image to verify.", true);
+      return;
     }
 
     try {
-      const response = await axios.post(
-        'http://localhost:8000/stamps/documents/verify-document/', // Your backend API
+      const res = await axios.post(
+        "http://localhost:8000/stamps/documents/verify-document/",
         formData,
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         }
       );
-      setVerificationStatus(response.data.status);
-      setIsVerified(response.data.isVerified);
-      setErrorMessage('');
-    } catch (error) {
-      console.error(error);
-      setErrorMessage('Error verifying document. Please try again.');
+
+      const { status, isVerified, message } = res.data;
+      if (status === "valid") {
+        openModal(message || "Document is authentic!", false);
+      } else if (status === "invalid") {
+        openModal(message || "Document is not recognized or is altered.", true);
+      } else if (status === "error") {
+        openModal(message || "An error occurred during verification.", true);
+      } else {
+        // fallback
+        openModal("Unexpected response from server.", true);
+      }
+    } catch (err) {
+      console.error("Verification error:", err);
+      openModal("Failed to verify document. Please try again.", true);
     }
   };
 
-  // Helper function to convert data URI to blob for scanning images
-  const dataURItoBlob = (dataURI) => {
-    const byteString = atob(dataURI.split(',')[1]);
-    const arrayBuffer = new ArrayBuffer(byteString.length);
-    const uintArray = new Uint8Array(arrayBuffer);
-    for (let i = 0; i < byteString.length; i++) {
-      uintArray[i] = byteString.charCodeAt(i);
-    }
-    return new Blob([uintArray], { type: 'image/jpeg' });
+  // -------------- Modal Logic --------------
+  const openModal = (msg, isError) => {
+    setModalMessage(msg);
+    setModalIsError(isError);
+    setIsModalOpen(true);
   };
 
-  useEffect(() => {
-    // Make sure videoRef and canvasRef are available
-    if (videoRef.current && !videoRef.current.srcObject) {
-      startWebcam();  // Start the webcam when component mounts
-    }
-  }, []);
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setModalMessage("");
+  };
 
+  // -------------- UI --------------
   return (
     <>
       <NavBar />
       <div className="min-h-screen bg-gray-50 p-6 max-w-4xl mx-auto">
         <h2 className="text-2xl font-bold mb-6 text-center">Document Verification</h2>
 
-        {/* File Upload Section */}
+        {/* File Upload */}
         <div className="mb-4">
+          <label className="block text-sm font-medium mb-2">
+            Upload Document (PDF or Image)
+          </label>
           <input
             type="file"
-            onChange={handleFileUpload}
-            className="w-full p-3 border-2 border-gray-300 rounded-md"
-            accept="image/*,application/pdf"
+            accept="application/pdf,image/*"
+            onChange={handleFileChange}
+            className="p-2 border"
           />
-        </div>
-
-        {/* Display Preview of Uploaded File */}
-        {previewUrl && (
-          <div className="mb-6">
-            {isPdf ? (
-              <img
-                src={previewUrl}
-                alt="Document Preview"
-                className="max-w-full h-auto mx-auto border border-gray-300 rounded-md"
-              />
-            ) : (
-              <img
-                src={previewUrl}
-                alt="Document Preview"
-                className="max-w-full h-auto mx-auto border border-gray-300 rounded-md"
-              />
-            )}
-          </div>
-        )}
-
-        {/* Webcam and Image Capture Section */}
-        <div className="mb-6">
+          {previewUrl && (
+            <div className="mt-4">
+              {isPdf ? (
+                <div>
+                  <p className="text-gray-600 text-sm">PDF Preview (Page 1):</p>
+                  <img
+                    src={previewUrl}
+                    alt="PDF Preview"
+                    className="border border-gray-300 max-w-full"
+                  />
+                </div>
+              ) : (
+                <img
+                  src={previewUrl}
+                  alt="File Preview"
+                  className="border border-gray-300 max-w-full"
+                />
+              )}
+            </div>
+          )}
           <button
-            onClick={startWebcam}
-            className="px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition"
+            onClick={() => verifyDocument()}
+            className="mt-3 px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
-            Start Scanning Document
-          </button>
-        </div>
-        <div className="mb-6 flex justify-center">
-          <video ref={videoRef} width="320" height="240" autoPlay></video>
-        </div>
-        <div className="mb-6 flex justify-center">
-          <canvas ref={canvasRef} width="320" height="240" style={{ display: 'none' }}></canvas>
-        </div>
-        <div className="mb-6 flex justify-center">
-          <button
-            onClick={captureImage}
-            className="px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition"
-          >
-            Capture Image from Scan
+            Verify Uploaded
           </button>
         </div>
 
-        {/* Verification Button */}
-        <div className="flex justify-center mb-6">
-          <button
-            onClick={() => handleVerifyDocument()}
-            className="px-6 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition"
-          >
-            Verify Document
-          </button>
+        <hr className="my-6" />
+
+        {/* Webcam */}
+        <div className="mb-4">
+          <p className="block text-sm font-medium mb-2">Or Scan QR Code via Webcam</p>
+          <video
+            ref={videoRef}
+            width="320"
+            height="240"
+            autoPlay
+            className="bg-black border border-gray-300"
+          />
+          <canvas
+            ref={canvasRef}
+            style={{ display: "none" }}
+          />
+          <div className="mt-3 space-x-3">
+            <button
+              onClick={startWebcam}
+              className="px-5 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+            >
+              Start Webcam
+            </button>
+            <button
+              onClick={captureImageFromWebcam}
+              className="px-5 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Capture & Verify
+            </button>
+          </div>
         </div>
-
-        {/* Display Verification Results */}
-        {verificationStatus && (
-          <div
-            className={`p-4 rounded-md ${isVerified ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}
-          >
-            <h3 className="font-semibold">
-              {isVerified ? 'Document Verified Successfully!' : 'Document Verification Failed'}
-            </h3>
-            <p>{verificationStatus}</p>
-          </div>
-        )}
-
-        {/* Error Message */}
-        {errorMessage && (
-          <div className="mt-6 p-4 bg-red-100 text-red-700 rounded-md">
-            <strong>Error:</strong> {errorMessage}
-          </div>
-        )}
       </div>
+
+      {/* Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-6 rounded shadow-lg max-w-md w-full">
+            <h2
+              className={`text-lg font-semibold mb-4 ${
+                modalIsError ? "text-red-600" : "text-green-600"
+              }`}
+            >
+              {modalIsError ? "Verification Issue" : "Verification Success"}
+            </h2>
+            <p className="mb-4">{modalMessage}</p>
+            <button
+              onClick={closeModal}
+              className="px-4 py-2 bg-gray-300 rounded hover:bg-gray-400"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 };

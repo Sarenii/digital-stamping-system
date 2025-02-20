@@ -1,5 +1,7 @@
 // src/services/documentService.js
 import axios from "axios";
+import api from "./api";
+
 
 const API_URL = "http://localhost:8000/stamps/documents/";
 
@@ -25,58 +27,40 @@ export const getDocuments = async (token) => {
  * @param {FormData} documentData
  * @param {string} token
  */
-export const uploadDocument = async (documentData, token) => {
-  try {
-    const response = await axios.post(API_URL, documentData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "multipart/form-data",
-      },
-    });
-    return response.data; // Return the uploaded document data
-  } catch (error) {
-    console.error("Error uploading document:", error);
-    throw error;
-  }
-};
-
-/**
- * Update/replace an existing document's file (e.g., after stamping).
- * @param {number|string} documentId
- * @param {Blob|File} updatedFile
- * @param {string} token
- */
-export const updateDocumentFile = async (documentId, updatedFile, token) => {
-  try {
-    const formData = new FormData();
-    formData.append("file", updatedFile);
-
-    // Depending on your backend, you might use PATCH or PUT. Below we assume PATCH:
-    const response = await axios.patch(`${API_URL}/${documentId}/`, formData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "multipart/form-data",
-      },
-    });
-    return response.data; // The updated document data
-  } catch (error) {
-    console.error("Error updating document file:", error);
-    throw error;
-  }
-};
-
-export const generateQR = async (documentId, token) => {
-  const response = await fetch(`http://localhost:8000/stamps/documents/${documentId}/generate_qr/`, {
-    method: "POST",
+// Create a new Document (stamped=false, raw file)
+export const uploadDocument = async (formData, token) => {
+  const response = await api.post("stamps/documents/", formData, {
     headers: {
-      "Content-Type": "application/json",
+      "Content-Type": "multipart/form-data",
       Authorization: `Bearer ${token}`,
     },
   });
-  if (!response.ok) {
-    throw new Error("Failed to generate QR");
-  }
-  return response.json();
+  return response.data; // includes document {id, serial_number, stamped=false, etc.}
+};
+
+// Overwrite the Document's file field with final stamped PDF => sets stamped=true
+export const updateDocumentFile = async (documentId, pdfBlob, token) => {
+  const finalForm = new FormData();
+  finalForm.append("file", pdfBlob, "stamped.pdf");
+
+  // Perform a PUT request => /documents/<documentId>/
+  const response = await api.put(`/stamps/documents/${documentId}/`, finalForm, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return response.data; 
+};
+
+// Generate a QR code for the doc
+export const generateQR = async (documentId, token) => {
+  const response = await api.post(`/stamps/documents/${documentId}/generate_qr/`, null, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+  });
+  return response.data; // {qr_base64: "..."}
 };
 // Additional functions like deleteDocument, renameDocument, etc., can be added here
 

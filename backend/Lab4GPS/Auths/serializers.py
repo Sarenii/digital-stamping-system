@@ -101,8 +101,14 @@ class LoginSerializer(serializers.Serializer):
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ('first_name', 'last_name', 'email', 'username', 'profile_picture', 'is_verified', 'registration_date', 'role')
-        read_only_fields = ('is_verified', 'registration_date', 'profile_picture', 'role')
+        fields = ('first_name', 'last_name', 'email', 'username', 'profile_picture', 'is_verified', 'registration_date', 'role', 'stamp_verified')
+        read_only_fields = (
+            'is_verified', 
+            'registration_date', 
+            'profile_picture', 
+            'role',
+            'stamp_verified',  # optionally read-only
+        )
 
 class UpdateProfileSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(required=True)

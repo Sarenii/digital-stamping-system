@@ -5,6 +5,8 @@ from django.utils import timezone
 import qrcode
 import base64
 from io import BytesIO
+import hashlib
+
 
 # Stamp Model
 class Stamp(models.Model):
@@ -60,6 +62,50 @@ class Document(models.Model):
 
     def __str__(self):
         return f"Document by {self.user.username}"
+    
+    file_hash = models.CharField(
+        max_length=64,
+        blank=True,
+        null=True,
+        help_text="Stores SHA256 hash of the file for authenticity checks."
+    )
+
+    def __str__(self):
+        return f"Document by {self.user.username}"
+
+    def save(self, *args, **kwargs):
+        # If there's no serial_number yet, create one
+        if not self.serial_number:
+            self.serial_number = get_random_string(length=8).upper()
+
+        # If the file changed, compute or update the hash
+        super().save(*args, **kwargs)  # Save first so 'file' is accessible
+        if self.file:
+            self.compute_hash()
+            # Also ensure QR is generated
+            self.generate_qr_code()
+            super().save(update_fields=['file_hash', 'qr_data'])
+
+    def compute_hash(self):
+        """
+        Reads the file from storage and computes a SHA256 hash, storing it in file_hash.
+        """
+        sha = hashlib.sha256()
+        with self.file.open('rb') as f:
+            for chunk in f:
+                sha.update(chunk)
+        self.file_hash = sha.hexdigest()
+
+
+    def _generate_unique_serial(self):
+        """
+        Loops until it finds an 8-char uppercase string not in use.
+        If you want a longer or shorter serial, just change length=.
+        """
+        while True:
+            candidate = get_random_string(length=8).upper()
+            if not Document.objects.filter(serial_number=candidate).exists():
+                return candidate
 
     def generate_qr_code(self):
         """Generate a QR code with serial_number, user info, etc."""

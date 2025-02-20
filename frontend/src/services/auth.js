@@ -30,7 +30,8 @@ export const refreshToken = async () => {
 
 // User profile retrieval
 export const getUserProfile = async () => {
-  return await api.get("/auth/profile/");
+  const response = await api.get("/auth/profile/");
+  return response.data; // so your code returns the actual JSON object, not the entire response
 };
 
 // Update user profile
